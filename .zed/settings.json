@@ -1,0 +1,12 @@
+{
+  "languages": {
+    "SQL": {
+      "hard_tabs": true,
+      "tab_size": 2
+    }
+  },
+  "prettier": {
+    "allowed": true
+  },
+  "project_name": "SISTER"
+}
