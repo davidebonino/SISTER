@@ -41,7 +41,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Azione AS
     SELF.UtenteIns   := NULL;
     SELF.DataAgg     := NULL;
     SELF.UtenteAgg   := NULL;
-    SELF.Condizioni  := OBJ_Condizioni();
     RETURN;
   END;
   --------------------------------------------------------------------------

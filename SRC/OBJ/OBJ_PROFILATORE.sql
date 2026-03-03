@@ -3,7 +3,6 @@
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Profilatore AS OBJECT (
   Esito           OBJ_Esito,         -- Esito dell'ultima operazione eseguita
-  Condizioni      OBJ_Condizioni,    -- Condizioni di profilazione in formato JSON
   MEMBER FUNCTION Info RETURN VARCHAR2,
   STATIC FUNCTION MioIdProfilo RETURN NUMBER,
   STATIC FUNCTION MioIdRuolo RETURN NUMBER,
@@ -263,6 +262,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilatore AS
 
         -- Formato non valido: devono essere presenti esattamente due '|'
 	      IF pos1 = 0 OR pos2 = 0 THEN
+					-- !!! Gestione errore da rivedere
 	        RAISE_APPLICATION_ERROR(-20002,
 	          'Formato errato (atteso: valore|operatore|tipo). Attributo='||r.attribute);
 	      END IF;
@@ -280,14 +280,17 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilatore AS
            sia valido e che il valore non sia vuoto.
            ----------------------------------------------------------------- */
 	      IF NOT InLista(vOp, vOps) THEN
+				  -- !!! Gestione errore da rivedere
 	        RAISE_APPLICATION_ERROR(-20003, 'Operatore non ammesso: '||vOp);
 	      END IF;
 
 	      IF vOp NOT IN ('IS NULL','IS NOT NULL') THEN
 	        IF NOT InLista(vType, vTypes) THEN
+					  -- !!! Gestione errore da rivedere
 	          RAISE_APPLICATION_ERROR(-20004, 'Tipo non ammesso: '||vType);
 	        END IF;
 	        IF TRIM(vVal) IS NULL THEN
+						-- !!! Gestione errore da rivedere
 	          RAISE_APPLICATION_ERROR(-20005, 'Valore mancante per operatore '||vOp||'. Attributo='||r.attribute);
 	        END IF;
 	      END IF;

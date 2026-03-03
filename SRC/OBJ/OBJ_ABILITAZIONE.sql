@@ -40,7 +40,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
     SELF.DataAgg := NULL;
     SELF.UtenteAgg := NULL;
     SELF.Operatore := NULL;
-    SELF.Condizioni := OBJ_Condizioni();
     RETURN;
   END;
 
@@ -236,4 +235,3 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
     --------------------------------------------------------------------------
 
 END;
-

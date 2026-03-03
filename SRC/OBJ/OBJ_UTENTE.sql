@@ -63,7 +63,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
       SELF.Annotazioni   := NULL;
       SELF.IdProfessione := NULL;
       SELF.Incarico      := NULL;
-      SELF.Condizioni := OBJ_Condizioni();
       RETURN;
     END;
 

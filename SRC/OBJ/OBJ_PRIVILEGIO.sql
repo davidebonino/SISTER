@@ -36,7 +36,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Privilegio AS
     SELF.DataAgg      := NULL;
     SELF.UtenteAgg    := NULL;
     SELF.Attivo       := NULL;
-    SELF.Condizioni := OBJ_Condizioni();
     RETURN;
   END;
 

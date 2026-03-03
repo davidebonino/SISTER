@@ -37,7 +37,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
       SELF.DataAgg   := NULL;
       SELF.UtenteAgg := NULL;
       SELF.Attivo    := NULL;
-      SELF.Condizioni := OBJ_Condizioni();
       RETURN;
     END;
 

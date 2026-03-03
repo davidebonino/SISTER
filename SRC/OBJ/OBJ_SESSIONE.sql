@@ -4,7 +4,7 @@
 CREATE OR REPLACE TYPE OBJ_Sessione UNDER OBJ_Profilatore (
   IdSessione RAW(16),
   IdProfilo  NUMBER,
-  IdRuolo    NUMBER, 
+  IdRuolo    NUMBER,
   Stato      CHAR(1),
   Data       DATE,
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
@@ -27,7 +27,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
     SELF.IdRuolo   := NULL;
     SELF.Stato     := NULL;
     SELF.Data      := NULL;
-    SELF.Condizioni := OBJ_Condizioni();
     RETURN;
   END;
 
@@ -46,8 +45,8 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
     vSessione OBJ_Sessione;
   BEGIN
     vSessione := OBJ_Sessione();
-    
-    -- Verifica delle credenziali 
+
+    -- Verifica delle credenziali
     SELECT ID_RUOLO
       INTO vIdRuolo
       FROM UTENTI U
@@ -57,7 +56,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
       AND P.ATTIVO     = 'S'
       AND UPPER(U.LOGIN)      = UPPER(pUsername)
       AND UPPER(U.PASSWORD_0) = STANDARD_HASH(pKeyword, 'MD5')
-      AND P.ID_PROFILO = TO_NUMBER(pIdProfilo) 
+      AND P.ID_PROFILO = TO_NUMBER(pIdProfilo)
       AND U.DATA_SCADENZA_PASSWORD >= SYSDATE
       AND ROWNUM = 1;
 
@@ -96,7 +95,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
     vSessione OBJ_Sessione;
   BEGIN
     vSessione := OBJ_Sessione();
-    
+
     SELECT ID_SESSIONE,
            ID_PROFILO,
            ID_RUOLO,

@@ -24,7 +24,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Ruolo AS
     SELF.Descrizione := NULL;
     SELF.DataInizioValidita := NULL;
     SELF.DataFineValidita := NULL;
-    SELF.Condizioni := OBJ_Condizioni();
     RETURN;
   END;
 
@@ -42,10 +41,10 @@ CREATE OR REPLACE TYPE BODY OBJ_Ruolo AS
     vRuolo OBJ_Ruolo;
   BEGIN
     vRuolo := OBJ_Ruolo();
-    
+
     SELECT ID_RUOLO
          , DESCRIZIONE
-         , DATA_INIZIO_VALIDITA  
+         , DATA_INIZIO_VALIDITA
          , DATA_FINE_VALIDITA
       INTO vRuolo.IdRuolo,
            vRuolo.Descrizione,
