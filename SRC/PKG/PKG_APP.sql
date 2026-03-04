@@ -35,24 +35,28 @@ CREATE OR REPLACE PACKAGE SISTER_TST.PKG_APP AS
   PROCEDURE SetParametro(pChiave IN VARCHAR2, pValore IN VARCHAR2);
 
   -- Gestione contatore log
+  -- Nota: il contatore viene anche aggiornato direttamente da OBJ_Esito.Log()
+  --       tramite DBMS_SESSION per evitare dipendenze circolari.
   FUNCTION  GetContatorLog RETURN NUMBER;
   FUNCTION  IncrementaContatorLog RETURN NUMBER;
 
   -- Verifica autenticazione, privilegio e controlli logici.
-    -- Restituisce un OBJ_Esito già pronto:
-    --   200  → accesso consentito, il metodo CRUD può procedere
-    --   400  → controlli logici falliti
-    --   401  → autenticazione mancante o privilegi insufficienti
-    --   500  → errore interno
-    -- pControlliLogici: risultato di SELF.ControlliLogici(), passato dall'esterno
-    --                   perché la logica è specifica di ogni oggetto.
-    --                   Passare TRUE se non applicabile (es. Elimina).
-    FUNCTION VerificaAccesso(
-      pTipoAzione      IN VARCHAR2,
-      pOggetto         IN VARCHAR2,
-      pAmbito          IN VARCHAR2,
-      pControlliLogici IN BOOLEAN DEFAULT TRUE
-    ) RETURN OBJ_Esito;
+  -- Restituisce un OBJ_Esito già pronto:
+  --   200  → accesso consentito, il metodo CRUD può procedere
+  --   400  → controlli logici falliti
+  --   401  → autenticazione mancante o privilegi insufficienti
+  --   500  → errore interno
+  -- pControlliLogici: risultato di SELF.ControlliLogici(), passato dall'esterno
+  --                   perché la logica è specifica di ogni oggetto.
+  --                   Passare TRUE se non applicabile (es. Elimina).
+  -- Il logging in CTX_APP_LOG è delegato a vEsito.Log() (metodo di OBJ_Esito)
+  -- per evitare il riferimento circolare PKG_APP → OBJ_Esito → PKG_APP.
+  FUNCTION VerificaAccesso(
+    pTipoAzione      IN VARCHAR2,
+    pOggetto         IN VARCHAR2,
+    pAmbito          IN VARCHAR2,
+    pControlliLogici IN BOOLEAN DEFAULT TRUE
+  ) RETURN OBJ_Esito;
 
 END PKG_APP;
 
@@ -225,70 +229,83 @@ CREATE OR REPLACE PACKAGE BODY SISTER_TST.PKG_APP AS
 
 
   -- VERIFICA ACCESSO
+  -- Il logging viene delegato a vEsito.Log() — metodo di OBJ_Esito che usa
+  -- DBMS_SESSION e UTL_CALL_STACK direttamente, senza dipendere da PKG_APP.
   FUNCTION VerificaAccesso(
     pTipoAzione      IN VARCHAR2,
     pOggetto         IN VARCHAR2,
     pAmbito          IN VARCHAR2,
     pControlliLogici IN BOOLEAN DEFAULT TRUE
   ) RETURN OBJ_Esito IS
-    vIdAzione    NUMBER;
+    vIdAzione     NUMBER;
     vIdPrivilegio NUMBER;
+    vEsito        OBJ_Esito;
   BEGIN
 
     -- Passo 1: verifica autenticazione
     IF OBJ_Profilatore.MioIdRuolo() IS NULL THEN
-      RETURN OBJ_Esito.Imposta(
+      vEsito := OBJ_Esito.Imposta(
         401,
         pOggetto || ' non ' || LOWER(pTipoAzione) || ', autenticazione mancante',
         'MioIdRuolo IS NULL',
         'PKG_APP.VerificaAccesso: ' || pTipoAzione || ' su ' || pOggetto
       );
+      vEsito.Log();
+      RETURN vEsito;
     END IF;
 
     -- Passo 2: ricerca azione e privilegio
     vIdAzione := OBJ_Azione.Cerca(pTipoAzione, pOggetto, pAmbito);
 
     IF vIdAzione IS NULL THEN
-      RETURN OBJ_Esito.Imposta(
+      vEsito := OBJ_Esito.Imposta(
         401,
         pOggetto || ' non ' || LOWER(pTipoAzione) || ', azione non configurata',
         'Azione non trovata: ' || pTipoAzione || '/' || pOggetto || '/' || NVL(pAmbito, 'NULL'),
         'PKG_APP.VerificaAccesso: OBJ_Azione.Cerca ha restituito NULL'
       );
+      vEsito.Log();
+      RETURN vEsito;
     END IF;
 
     vIdPrivilegio := OBJ_Privilegio.Cerca(vIdAzione, OBJ_Profilatore.MioIdRuolo());
 
     IF vIdPrivilegio IS NULL THEN
-      RETURN OBJ_Esito.Imposta(
+      vEsito := OBJ_Esito.Imposta(
         401,
         pOggetto || ' non ' || LOWER(pTipoAzione) || ', privilegi insufficienti',
         'IdPrivilegio NULL per IdAzione=' || vIdAzione || ', IdRuolo=' || OBJ_Profilatore.MioIdRuolo(),
         'PKG_APP.VerificaAccesso: OBJ_Privilegio.Cerca ha restituito NULL'
       );
+      vEsito.Log();
+      RETURN vEsito;
     END IF;
 
     -- Passo 3: controlli logici dell'oggetto chiamante
     IF NOT NVL(pControlliLogici, TRUE) THEN
-      RETURN OBJ_Esito.Imposta(
+      vEsito := OBJ_Esito.Imposta(
         400,
         pOggetto || ' non ' || LOWER(pTipoAzione) || ', errori nei controlli logici',
         'ControlliLogici ha restituito FALSE',
         'PKG_APP.VerificaAccesso: ControlliLogici falliti per ' || pOggetto
       );
+      vEsito.Log();
+      RETURN vEsito;
     END IF;
 
-    -- Tutto ok
+    -- Tutto ok: accesso consentito (non loggato per non inquinare il log con i successi)
     RETURN OBJ_Esito.Imposta(200, 'Accesso consentito', NULL, NULL);
 
   EXCEPTION
     WHEN OTHERS THEN
-      RETURN OBJ_Esito.Imposta(
+      vEsito := OBJ_Esito.Imposta(
         500,
         'Verifica accesso non riuscita per errore interno',
         'Verifica accesso non riuscita' || SQLERRM,
         SQLERRM
       );
+      vEsito.Log();
+      RETURN vEsito;
   END VerificaAccesso;
 
 END PKG_APP;
