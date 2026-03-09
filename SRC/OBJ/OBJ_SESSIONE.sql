@@ -70,7 +70,6 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
       COMMIT;
 
       vSessione.Esito := OBJ_Esito.Imposta(201, 'Sessione creata con successo', NULL, NULL);
-      PKG_APP.gSessione := vSessione;
       RETURN vSessione;
     ELSE
       vSessione.Esito := OBJ_Esito.Imposta(401, 'Autenticazione non riuscita, IdRuolo non valido', 'IdRuolo non valido: ' || vIdRuolo, NULL);

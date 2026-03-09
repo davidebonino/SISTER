@@ -19,6 +19,8 @@ DECLARE
 
       -- Creazione azione
       DBMS_OUTPUT.PUT_LINE('Azione caricata con successo');
+
+      -- Creazione azione
       Azione.Tipo := 'VISUALIZZA';
       Azione.Nome := 'VISUALIZZA AZIONE';
       Azione.Descrizione := 'Visualizza i dettagli di un''azione';
@@ -88,7 +90,7 @@ DECLARE
       END IF;
 
       -- Eliminazione utente
-      Utente.IdUtente := 8555;
+      --Utente.IdUtente := 8555;
       Utente.Elimina;
       IF Utente.Esito.StatusCode = 200 THEN
         DBMS_OUTPUT.PUT_LINE('Utente eliminato con successo');
@@ -291,234 +293,6 @@ DECLARE
   END;
 
 
-  ----------------------------------------------------------------------------
-  -- TEST: BUILDWHERE — filtro singolo COGNOME LIKE
-  -- Verifica che BuildWhere generi correttamente il predicato LIKE su VARCHAR2
-  -- e che la clausola prodotta restituisca righe valide dalla tabella UTENTI.
-  --
-  -- Setup: inserisce in ctx_column_map la mappatura
-  --          namespace=CTX_APP_FLT, attribute=COGNOME,
-  --          table_name=UTENTI, column_name=COGNOME
-  -- Filtro contesto: COGNOME = 'B%|LIKE|VARCHAR2'
-  -- WHERE attesa: U.COGNOME LIKE 'B%'
-  -- Cleanup: ROLLBACK TO SAVEPOINT + PulisciContesto
-  ----------------------------------------------------------------------------
-  PROCEDURE TBW1 AS
-    vUtente  OBJ_Utente;
-    vWhere   VARCHAR2(32767);
-    vSql     VARCHAR2(32767);
-    cRec     SYS_REFCURSOR;
-    vCognome VARCHAR2(50);
-    vNome    VARCHAR2(50);
-    vLogin   VARCHAR2(100);
-    vCount   NUMBER := 0;
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('--- TBW1: BuildWhere - filtro singolo COGNOME LIKE ''B%'' ---');
-    vUtente := OBJ_Utente();
-
-    -- Setup: salva il punto di ripristino per il rollback del mapping di test
-    SAVEPOINT tbw1_start;
-
-    -- Registra la mappatura attributo → colonna per il namespace di test
-    INSERT INTO ctx_column_map (namespace, attribute, table_name, column_name)
-    VALUES ('CTX_APP_FLT', 'COGNOME', 'UTENTI', 'COGNOME');
-
-    -- Imposta il filtro nel contesto: formato valore|OPERATORE|TIPO
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE|VARCHAR2');
-
-    -- Genera la clausola WHERE tramite BuildWhere
-    vWhere := vUtente.BuildWhere('CTX_APP_FLT', 'UTENTI', 'U');
-    DBMS_OUTPUT.PUT_LINE('WHERE generata: ' || NVL(vWhere, '(vuota - nessun filtro attivo)'));
-
-    IF vWhere IS NOT NULL THEN
-      -- Esegue la query dinamica usando la WHERE prodotta (max 5 righe)
-      vSql := 'SELECT U.COGNOME, U.NOME, U.LOGIN'
-           || '  FROM UTENTI U'
-           || ' WHERE ' || vWhere
-           || '   AND ROWNUM <= 5';
-      OPEN cRec FOR vSql;
-      LOOP
-        FETCH cRec INTO vCognome, vNome, vLogin;
-        EXIT WHEN cRec%NOTFOUND;
-        vCount := vCount + 1;
-        DBMS_OUTPUT.PUT_LINE('  [' || vCount || '] ' || vCognome || ' ' || vNome || ' — login: ' || vLogin);
-      END LOOP;
-      CLOSE cRec;
-      IF vCount = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('  Nessun utente trovato con il filtro applicato');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('  Totale righe restituite (max 5): ' || vCount);
-      END IF;
-    END IF;
-
-    -- Cleanup: annulla l'INSERT nel mapping di test e svuota il contesto
-    ROLLBACK TO SAVEPOINT tbw1_start;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    DBMS_OUTPUT.PUT_LINE('TBW1 completato.');
-
-  EXCEPTION
-    WHEN OTHERS THEN
-      DBMS_OUTPUT.PUT_LINE('Errore TBW1: ' || SQLERRM);
-      IF cRec%ISOPEN THEN CLOSE cRec; END IF;
-      ROLLBACK TO SAVEPOINT tbw1_start;
-      PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW1;
-
-
-  ----------------------------------------------------------------------------
-  -- TEST: BUILDWHERE — filtro singolo ATTIVO = 'S'
-  -- Verifica che BuildWhere gestisca correttamente il predicato di uguaglianza
-  -- su VARCHAR2 e filtri solo gli utenti attivi.
-  --
-  -- Setup: inserisce in ctx_column_map la mappatura
-  --          namespace=CTX_APP_FLT, attribute=ATTIVO,
-  --          table_name=UTENTI, column_name=ATTIVO
-  -- Filtro contesto: ATTIVO = 'S|=|VARCHAR2'
-  -- WHERE attesa: U.ATTIVO = 'S'
-  -- Cleanup: ROLLBACK TO SAVEPOINT + PulisciContesto
-  ----------------------------------------------------------------------------
-  PROCEDURE TBW2 AS
-    vUtente  OBJ_Utente;
-    vWhere   VARCHAR2(32767);
-    vSql     VARCHAR2(32767);
-    cRec     SYS_REFCURSOR;
-    vCognome VARCHAR2(50);
-    vNome    VARCHAR2(50);
-    vAttivo  VARCHAR2(1);
-    vCount   NUMBER := 0;
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('--- TBW2: BuildWhere - filtro singolo ATTIVO = ''S'' ---');
-    vUtente := OBJ_Utente();
-
-    SAVEPOINT tbw2_start;
-
-    -- Registra la mappatura attributo → colonna per il namespace di test
-    INSERT INTO ctx_column_map (namespace, attribute, table_name, column_name)
-    VALUES ('CTX_APP_FLT', 'ATTIVO', 'UTENTI', 'ATTIVO');
-
-    -- Imposta il filtro: solo utenti attivi
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO', 'S|=|VARCHAR2');
-
-    -- Genera la clausola WHERE tramite BuildWhere
-    vWhere := vUtente.BuildWhere('CTX_APP_FLT', 'UTENTI', 'U');
-    DBMS_OUTPUT.PUT_LINE('WHERE generata: ' || NVL(vWhere, '(vuota - nessun filtro attivo)'));
-
-    IF vWhere IS NOT NULL THEN
-      -- Esegue la query dinamica (max 5 righe)
-      vSql := 'SELECT U.COGNOME, U.NOME, U.ATTIVO'
-           || '  FROM UTENTI U'
-           || ' WHERE ' || vWhere
-           || '   AND ROWNUM <= 5';
-      OPEN cRec FOR vSql;
-      LOOP
-        FETCH cRec INTO vCognome, vNome, vAttivo;
-        EXIT WHEN cRec%NOTFOUND;
-        vCount := vCount + 1;
-        DBMS_OUTPUT.PUT_LINE('  [' || vCount || '] ' || vCognome || ' ' || vNome || ' — attivo: ' || vAttivo);
-      END LOOP;
-      CLOSE cRec;
-      IF vCount = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('  Nessun utente trovato con il filtro applicato');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('  Totale righe restituite (max 5): ' || vCount);
-      END IF;
-    END IF;
-
-    ROLLBACK TO SAVEPOINT tbw2_start;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    DBMS_OUTPUT.PUT_LINE('TBW2 completato.');
-
-  EXCEPTION
-    WHEN OTHERS THEN
-      DBMS_OUTPUT.PUT_LINE('Errore TBW2: ' || SQLERRM);
-      IF cRec%ISOPEN THEN CLOSE cRec; END IF;
-      ROLLBACK TO SAVEPOINT tbw2_start;
-      PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW2;
-
-
-  ----------------------------------------------------------------------------
-  -- TEST: BUILDWHERE — filtri multipli combinati (COGNOME LIKE + ATTIVO =)
-  -- Verifica che BuildWhere concateni correttamente più predicati con AND
-  -- quando il contesto contiene più attributi contemporaneamente.
-  --
-  -- Setup: inserisce in ctx_column_map due mappature per CTX_APP_FLT/UTENTI:
-  --          COGNOME → COGNOME
-  --          ATTIVO  → ATTIVO
-  -- Filtri contesto:
-  --   COGNOME = 'B%|LIKE|VARCHAR2'
-  --   ATTIVO  = 'S|=|VARCHAR2'
-  -- WHERE attesa: U.COGNOME LIKE 'B%' AND U.ATTIVO = 'S'
-  --              (l'ordine dipende dall'iterazione di SESSION_CONTEXT)
-  -- Cleanup: ROLLBACK TO SAVEPOINT + PulisciContesto
-  ----------------------------------------------------------------------------
-  PROCEDURE TBW3 AS
-    vUtente  OBJ_Utente;
-    vWhere   VARCHAR2(32767);
-    vSql     VARCHAR2(32767);
-    cRec     SYS_REFCURSOR;
-    vCognome VARCHAR2(50);
-    vNome    VARCHAR2(50);
-    vLogin   VARCHAR2(100);
-    vAttivo  VARCHAR2(1);
-    vCount   NUMBER := 0;
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('--- TBW3: BuildWhere - filtri multipli COGNOME LIKE + ATTIVO = (AND) ---');
-    vUtente := OBJ_Utente();
-
-    SAVEPOINT tbw3_start;
-
-    -- Registra entrambe le mappature attributo → colonna
-    INSERT INTO ctx_column_map (namespace, attribute, table_name, column_name)
-    VALUES ('CTX_APP_FLT', 'COGNOME', 'UTENTI', 'COGNOME');
-
-    INSERT INTO ctx_column_map (namespace, attribute, table_name, column_name)
-    VALUES ('CTX_APP_FLT', 'ATTIVO', 'UTENTI', 'ATTIVO');
-
-    -- Imposta entrambi i filtri nel contesto
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE|VARCHAR2');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO',  'S|=|VARCHAR2');
-
-    -- Genera la clausola WHERE tramite BuildWhere (deve contenere AND tra i predicati)
-    vWhere := vUtente.BuildWhere('CTX_APP_FLT', 'UTENTI', 'U');
-    DBMS_OUTPUT.PUT_LINE('WHERE generata: ' || NVL(vWhere, '(vuota - nessun filtro attivo)'));
-
-    IF vWhere IS NOT NULL THEN
-      -- Esegue la query dinamica (max 5 righe)
-      vSql := 'SELECT U.COGNOME, U.NOME, U.LOGIN, U.ATTIVO'
-           || '  FROM UTENTI U'
-           || ' WHERE ' || vWhere
-           || '   AND ROWNUM <= 5';
-      OPEN cRec FOR vSql;
-      LOOP
-        FETCH cRec INTO vCognome, vNome, vLogin, vAttivo;
-        EXIT WHEN cRec%NOTFOUND;
-        vCount := vCount + 1;
-        DBMS_OUTPUT.PUT_LINE('  [' || vCount || '] ' || vCognome || ' ' || vNome
-                          || ' — login: ' || vLogin || ', attivo: ' || vAttivo);
-      END LOOP;
-      CLOSE cRec;
-      IF vCount = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('  Nessun utente trovato con i filtri combinati');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('  Totale righe restituite (max 5): ' || vCount);
-      END IF;
-    END IF;
-
-    ROLLBACK TO SAVEPOINT tbw3_start;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    DBMS_OUTPUT.PUT_LINE('TBW3 completato.');
-
-  EXCEPTION
-    WHEN OTHERS THEN
-      DBMS_OUTPUT.PUT_LINE('Errore TBW3: ' || SQLERRM);
-      IF cRec%ISOPEN THEN CLOSE cRec; END IF;
-      ROLLBACK TO SAVEPOINT tbw3_start;
-      PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW3;
 
 
 ----------------------------------------------------------------------------
@@ -541,33 +315,27 @@ BEGIN
     --DBMS_OUTPUT.PUT_LINE('LETTURA CONTESTO ID_UTENTE: '   || SYS_CONTEXT('CTX_APP_IDS', 'ID_UTENTE'));
 
     -- ESECUZIONE TEST AZIONE
-    --TAZ1(10);
+    TAZ1(10);
 
     -- ESECUZIONE TEST UTENTE
-    --TUT1(237);
+    TUT1(237);
 
     -- ESECUZIONE TEST PROFILO
-    --TPR1(237);
+    TPR1(237);
 
     -- ESECUZIONE TEST PRIVILEGIO
-    --TPV1(1);
+    TPV1(1);
 
     -- ESECUZIONE TEST ABILITAZIONE
-    --TAB1(SYS_CONTEXT('CTX_APP_IDS', 'ID_SESSIONE'), 1);
+    TAB1(SYS_CONTEXT('CTX_APP_IDS', 'ID_SESSIONE'), 1);
 
     -- ESECUZIONE TEST RUOLO
-    --TRU1(100);
+    TRU1(100);
 
     -- ESECUZIONE TEST SESSIONE
-    --TSE1('davide.bonino', 'Peter_Pan', 17460);
+    TSE1('davide.bonino', 'Peter_Pan', 17460);
 
-    -- ESECUZIONE TEST BUILDWHERE
-    -- TBW1: filtro singolo — COGNOME LIKE 'B%'
-    TBW1;
-    -- TBW2: filtro singolo — solo utenti ATTIVO = 'S'
-    TBW2;
-    -- TBW3: filtri multipli combinati — COGNOME LIKE 'B%' AND ATTIVO = 'S'
-    TBW3;
+
 
     COMMIT;
 

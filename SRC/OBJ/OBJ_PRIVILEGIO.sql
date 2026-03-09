@@ -17,7 +17,7 @@ CREATE OR REPLACE TYPE OBJ_Privilegio UNDER OBJ_Profilatore (
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN,
   MEMBER PROCEDURE Crea,
   MEMBER PROCEDURE Modifica,
-  MEMBER PROCEDURE Elimina,
+  MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE),
   CONSTRUCTOR FUNCTION OBJ_Privilegio RETURN SELF AS RESULT
 );
 ----------------------------------------------------------------------------
@@ -25,142 +25,142 @@ CREATE OR REPLACE TYPE OBJ_Privilegio UNDER OBJ_Profilatore (
 
 CREATE OR REPLACE TYPE BODY OBJ_Privilegio AS
 
-  CONSTRUCTOR FUNCTION OBJ_Privilegio RETURN SELF AS RESULT
-  IS
-  BEGIN
-    SELF.IdPrivilegio := NULL;
-    SELF.IdAzione     := NULL;
-    SELF.IdRuolo      := NULL;
-    SELF.DataIns      := NULL;
-    SELF.UtenteIns    := NULL;
-    SELF.DataAgg      := NULL;
-    SELF.UtenteAgg    := NULL;
-    SELF.Attivo       := NULL;
-    RETURN;
-  END;
+  CONSTRUCTOR FUNCTION OBJ_Privilegio RETURN SELF AS RESULT IS
+	  BEGIN
+	    SELF.IdPrivilegio := NULL;
+	    SELF.IdAzione     := NULL;
+	    SELF.IdRuolo      := NULL;
+	    SELF.DataIns      := NULL;
+	    SELF.UtenteIns    := NULL;
+	    SELF.DataAgg      := NULL;
+	    SELF.UtenteAgg    := NULL;
+	    SELF.Attivo       := NULL;
+	    RETURN;
+	  END;
+	--------------------------------------------------------------------------
 
 
   -- Informazioni sull'oggetto
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2 IS
-  BEGIN
-    RETURN 'PRIVILEGIO';
-  END Info;
+	  BEGIN
+	    RETURN 'PRIVILEGIO';
+	  END Info;
   --------------------------------------------------------------------------
 
 
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN IS
-  BEGIN
-    RETURN TRUE;
-  END ControlliLogici;
+	  BEGIN
+	    RETURN TRUE;
+	  END ControlliLogici;
   --------------------------------------------------------------------------
 
 
   -- Carica il privilegio
   STATIC FUNCTION Carica(pIdPrivilegio IN NUMBER) RETURN OBJ_Privilegio IS
     vPrivilegio OBJ_Privilegio;
-  BEGIN
-    vPrivilegio := OBJ_Privilegio();
+	  BEGIN
+	    vPrivilegio := OBJ_Privilegio();
 
-    SELECT ID_PRIVILEGIO
-         , ID_AZIONE
-         , ID_RUOLO
-         , DATAINS
-         , UTENTEINS
-         , DATAAGG
-         , UTENTEAGG
-         , ATTIVO
-      INTO vPrivilegio.IdPrivilegio,
-           vPrivilegio.IdAzione,
-           vPrivilegio.IdRuolo,
-           vPrivilegio.DataIns,
-           vPrivilegio.UtenteIns,
-           vPrivilegio.DataAgg,
-           vPrivilegio.UtenteAgg,
-           vPrivilegio.Attivo
-      FROM TBL_PRIVILEGI PR
-       WHERE PR.ID_PRIVILEGIO = pIdPrivilegio;
+	    SELECT ID_PRIVILEGIO
+	         , ID_AZIONE
+	         , ID_RUOLO
+	         , DATAINS
+	         , UTENTEINS
+	         , DATAAGG
+	         , UTENTEAGG
+	         , ATTIVO
+	      INTO vPrivilegio.IdPrivilegio,
+	           vPrivilegio.IdAzione,
+	           vPrivilegio.IdRuolo,
+	           vPrivilegio.DataIns,
+	           vPrivilegio.UtenteIns,
+	           vPrivilegio.DataAgg,
+	           vPrivilegio.UtenteAgg,
+	           vPrivilegio.Attivo
+	      FROM TBL_PRIVILEGI PR
+	       WHERE PR.ID_PRIVILEGIO = pIdPrivilegio;
 
-     IF vPrivilegio.IdAzione IS NOT NULL THEN
-       vPrivilegio.Esito := OBJ_Esito.Imposta(200, 'Privilegio caricato con successo', NULL, NULL);
-       RETURN vPrivilegio;
-     ELSE
-       vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato', 'Privilegio non trovato per i parametri forniti', NULL);
-       RETURN vPrivilegio;
-     END IF;
-  EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      -- Privilegio non trovato
-      vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato, parametri errati', 'Privilegio non trovato, parametri errati' || SQLERRM, SQLERRM);
-      RETURN vPrivilegio;
-    WHEN OTHERS THEN
-      -- Log dell'errore per debugging
-      vPrivilegio.Esito := OBJ_Esito.Imposta(500, 'Privilegio non trovato per errore interno', 'Privilegio non trovato per errore interno' || SQLERRM, SQLERRM);
-      RETURN vPrivilegio;
-  END Carica;
-  --------------------------------------------------------------------------
+	     IF vPrivilegio.IdAzione IS NOT NULL THEN
+	       vPrivilegio.Esito := OBJ_Esito.Imposta(200, 'Privilegio caricato con successo', NULL, NULL);
+	       RETURN vPrivilegio;
+	     ELSE
+	       vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato', 'Privilegio non trovato per i parametri forniti', NULL);
+	       RETURN vPrivilegio;
+	     END IF;
+	  EXCEPTION
+	    WHEN NO_DATA_FOUND THEN
+	      -- Privilegio non trovato
+	      vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato, parametri errati', 'Privilegio non trovato, parametri errati' || SQLERRM, SQLERRM);
+	      RETURN vPrivilegio;
+	    WHEN OTHERS THEN
+	      -- Log dell'errore per debugging
+	      vPrivilegio.Esito := OBJ_Esito.Imposta(500, 'Privilegio non trovato per errore interno', 'Privilegio non trovato per errore interno' || SQLERRM, SQLERRM);
+	      RETURN vPrivilegio;
+	  END Carica;
+	--------------------------------------------------------------------------
 
 
   -- Carica il privilegio
   STATIC FUNCTION Carica(pIdAzione IN NUMBER, pIdRuolo IN NUMBER) RETURN OBJ_Privilegio IS
     vPrivilegio OBJ_Privilegio;
-  BEGIN
-    vPrivilegio := OBJ_Privilegio();
+	  BEGIN
+	    vPrivilegio := OBJ_Privilegio();
 
-    SELECT ID_PRIVILEGIO
-         , ID_AZIONE
-         , ID_RUOLO
-         , DATAINS
-         , UTENTEINS
-         , DATAAGG
-         , UTENTEAGG
-         , ATTIVO
-      INTO vPrivilegio.IdPrivilegio,
-           vPrivilegio.IdAzione,
-           vPrivilegio.IdRuolo,
-           vPrivilegio.DataIns,
-           vPrivilegio.UtenteIns,
-           vPrivilegio.DataAgg,
-           vPrivilegio.UtenteAgg,
-           vPrivilegio.Attivo
-      FROM TBL_PRIVILEGI PR
-       WHERE PR.ID_AZIONE = pIdAzione
-         AND PR.ID_RUOLO  = pIdRuolo
-         AND ROWNUM = 1;
+	    SELECT ID_PRIVILEGIO
+	         , ID_AZIONE
+	         , ID_RUOLO
+	         , DATAINS
+	         , UTENTEINS
+	         , DATAAGG
+	         , UTENTEAGG
+	         , ATTIVO
+	      INTO vPrivilegio.IdPrivilegio,
+	           vPrivilegio.IdAzione,
+	           vPrivilegio.IdRuolo,
+	           vPrivilegio.DataIns,
+	           vPrivilegio.UtenteIns,
+	           vPrivilegio.DataAgg,
+	           vPrivilegio.UtenteAgg,
+	           vPrivilegio.Attivo
+	      FROM TBL_PRIVILEGI PR
+	       WHERE PR.ID_AZIONE = pIdAzione
+	         AND PR.ID_RUOLO  = pIdRuolo
+	         AND ROWNUM = 1;
 
-     IF vPrivilegio.IdPrivilegio IS NOT NULL THEN
-       vPrivilegio.Esito := OBJ_Esito.Imposta(200, 'Privilegio caricato con successo', NULL, NULL);
-       RETURN vPrivilegio;
-     ELSE
-       vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato', 'Privilegio non trovato per i parametri forniti', NULL);
-       RETURN vPrivilegio;
-     END IF;
-  EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      -- Privilegio non trovato
-      vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato, parametri errati', 'Privilegio non trovato, parametri errati' || SQLERRM, SQLERRM);
-      RETURN vPrivilegio;
-    WHEN OTHERS THEN
-      -- Log dell'errore per debugging
-      vPrivilegio.Esito := OBJ_Esito.Imposta(500, 'Privilegio non trovato per errore interno', 'Privilegio non trovato per errore interno' || SQLERRM, SQLERRM);
-      RETURN vPrivilegio;
-  END Carica;
+	     IF vPrivilegio.IdPrivilegio IS NOT NULL THEN
+	       vPrivilegio.Esito := OBJ_Esito.Imposta(200, 'Privilegio caricato con successo', NULL, NULL);
+	       RETURN vPrivilegio;
+	     ELSE
+	       vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato', 'Privilegio non trovato per i parametri forniti', NULL);
+	       RETURN vPrivilegio;
+	     END IF;
+	  EXCEPTION
+	    WHEN NO_DATA_FOUND THEN
+	      -- Privilegio non trovato
+	      vPrivilegio.Esito := OBJ_Esito.Imposta(204, 'Privilegio non trovato, parametri errati', 'Privilegio non trovato, parametri errati' || SQLERRM, SQLERRM);
+	      RETURN vPrivilegio;
+	    WHEN OTHERS THEN
+	      -- Log dell'errore per debugging
+	      vPrivilegio.Esito := OBJ_Esito.Imposta(500, 'Privilegio non trovato per errore interno', 'Privilegio non trovato per errore interno' || SQLERRM, SQLERRM);
+	      RETURN vPrivilegio;
+	  END Carica;
   --------------------------------------------------------------------------
 
 
   -- Cerca l'ID dell'oggetto Privilegio
   STATIC FUNCTION Cerca(pIdAzione IN NUMBER, pIdRuolo IN NUMBER) RETURN NUMBER IS
     vPrivilegio OBJ_Privilegio;
-  BEGIN
-    vPrivilegio := Carica(pIdAzione, pIdRuolo);
+	  BEGIN
+	    vPrivilegio := Carica(pIdAzione, pIdRuolo);
 
-     IF vPrivilegio.Esito.StatusCode = 200 THEN
-       -- Privilegio trovato restituzione di IdPrivilegio
-       RETURN vPrivilegio.IdPrivilegio;
-     ELSE
-       -- Privilegio non trovato
-       RETURN NULL;
-     END IF;
-  END Cerca;
+	     IF vPrivilegio.Esito.StatusCode = 200 THEN
+	       -- Privilegio trovato restituzione di IdPrivilegio
+	       RETURN vPrivilegio.IdPrivilegio;
+	     ELSE
+	       -- Privilegio non trovato
+	       RETURN NULL;
+	     END IF;
+	  END Cerca;
   --------------------------------------------------------------------------
 
 
@@ -249,8 +249,10 @@ CREATE OR REPLACE TYPE BODY OBJ_Privilegio AS
     --------------------------------------------------------------------------
 
 
-  -- Elimina un oggetto Privilegio nel database (soft delete) impostando Attivo a 'N'
-  MEMBER PROCEDURE Elimina IS
+  -- Elimina un oggetto Privilegio nel database.
+  -- 		pFisica = FALSE (default): soft delete (Attivo = 'N')
+  -- 		pFisica = TRUE: eliminazione fisica del record
+  MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE) IS
     vEsitoAccesso OBJ_Esito;
     BEGIN
 
@@ -260,15 +262,23 @@ CREATE OR REPLACE TYPE BODY OBJ_Privilegio AS
         RETURN;
       END IF;
 
-      SELF.DataAgg   := SYSDATE;
-      SELF.UtenteAgg := OBJ_Utente.MioIdUtente();
-      SELF.Attivo    := 'N';
+      IF pFisica THEN
+        --Cancellazione fisica
+        DELETE FROM TBL_PRIVILEGI
+        WHERE ID_PRIVILEGIO = SELF.IdPrivilegio;
+      ELSE
+        --Cancellazione logica (soft delete)
+        SELF.DataAgg   := SYSDATE;
+        SELF.UtenteAgg := OBJ_Utente.MioIdUtente();
+        SELF.Attivo    := 'N';
 
-      UPDATE TBL_PRIVILEGI SET
-        ATTIVO = SELF.Attivo,
-        DATAAGG = SELF.DataAgg,
-        UTENTEAGG = SELF.UtenteAgg
-      WHERE ID_PRIVILEGIO = SELF.IdPrivilegio;
+        UPDATE TBL_PRIVILEGI SET
+          ATTIVO    = SELF.Attivo,
+          DATAAGG   = SELF.DataAgg,
+          UTENTEAGG = SELF.UtenteAgg
+        WHERE ID_PRIVILEGIO = SELF.IdPrivilegio;
+
+      END IF;
 
       IF SQL%ROWCOUNT > 0 THEN
         SELF.Esito := OBJ_Esito.Imposta(200, 'Privilegio eliminato con successo', NULL, NULL);
@@ -276,9 +286,8 @@ CREATE OR REPLACE TYPE BODY OBJ_Privilegio AS
         SELF.Esito := OBJ_Esito.Imposta(404, 'Privilegio non trovato per eliminazione', 'Privilegio non trovato per eliminazione', 'OBJ_Privilegio.Elimina: Nessun record aggiornato');
       END IF;
 
-      EXCEPTION
+    EXCEPTION
       WHEN OTHERS THEN
-        -- Log dell'errore per debugging
         SELF.Esito := OBJ_Esito.Imposta(500, 'Privilegio non eliminato per errore interno', 'Privilegio non eliminato per errore interno' || SQLERRM, SQLERRM);
 
     END Elimina;

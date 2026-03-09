@@ -137,11 +137,11 @@ CREATE OR REPLACE PACKAGE BODY SISTER_TST.PKG_APP AS
     vSessione := OBJ_Sessione.Crea(pUsername, pKeyword, pIdProfilo);
     IF vSessione.IdSessione IS NOT NULL THEN
       AggiungiContesto('CTX_APP_IDS', 'ID_SESSIONE', vSessione.IdSessione);
+      AggiungiContesto('CTX_APP_IDS', 'ID_PROFILO', vSessione.IdProfilo);
+      AggiungiContesto('CTX_APP_IDS', 'ID_RUOLO',   vsessione.IdRuolo);
 
       vProfilo := OBJ_Profilo.Carica(vSessione.IdProfilo);
       IF vProfilo.IdProfilo IS NOT NULL THEN
-        AggiungiContesto('CTX_APP_IDS', 'ID_PROFILO', vProfilo.IdProfilo);
-        AggiungiContesto('CTX_APP_IDS', 'ID_RUOLO',   vProfilo.IdRuolo);
         vNumAbilitazioni := OBJ_Profilo.CaricaContestoAbilitazioni(vProfilo.IdProfilo);
 
         vUtente := OBJ_Utente.Carica(vProfilo.IdUtente);

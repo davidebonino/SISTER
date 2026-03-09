@@ -17,7 +17,7 @@ CREATE OR REPLACE TYPE OBJ_Profilo UNDER OBJ_Profilatore (
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN,
   MEMBER PROCEDURE Crea,
   MEMBER PROCEDURE Modifica,
-  MEMBER PROCEDURE Elimina,
+  MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE),
   CONSTRUCTOR FUNCTION OBJ_Profilo RETURN SELF AS RESULT
   );
 ----------------------------------------------------------------------------
@@ -95,6 +95,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
         SELF.UtenteAgg,
         SELF.Attivo
       );
+
       SELF.Esito := OBJ_Esito.Imposta(200, 'Profilo creato con successo', NULL, NULL);
 
       EXCEPTION
@@ -144,8 +145,10 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
     --------------------------------------------------------------------------
 
 
-  -- Elimina un oggetto Profilo nel database (soft delete) impostando Attivo a 'N'
-  MEMBER PROCEDURE Elimina IS
+  -- Elimina un oggetto Profilo nel database.
+  -- pFisica = FALSE (default): soft delete (Attivo = 'N')
+  -- pFisica = TRUE: eliminazione fisica del record
+  MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE) IS
     vEsitoAccesso OBJ_Esito;
     BEGIN
 
@@ -155,15 +158,23 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
         RETURN;
       END IF;
 
-      SELF.DataAgg       := SYSDATE;
-      SELF.UtenteAgg     := OBJ_Profilo.MioIdUtente();
-      SELF.Attivo        := 'N';
+      IF pFisica THEN
+        --Cancellazione fisica
+        DELETE FROM PROFILI
+        WHERE ID_PROFILO = SELF.IdProfilo;
+      ELSE
+        --Cancellazione logica (soft delete)
+        SELF.DataAgg   := SYSDATE;
+        SELF.UtenteAgg := OBJ_Profilo.MioIdUtente();
+        SELF.Attivo    := 'N';
 
-      UPDATE PROFILI SET
-        DATAAGG = SELF.DataAgg,
-        UTENTEAGG = SELF.UtenteAgg,
-        ATTIVO = SELF.Attivo
-      WHERE ID_PROFILO = SELF.IdProfilo;
+        UPDATE PROFILI SET
+          ATTIVO    = SELF.Attivo,
+          DATAAGG   = SELF.DataAgg,
+          UTENTEAGG = SELF.UtenteAgg
+        WHERE ID_PROFILO = SELF.IdProfilo;
+
+      END IF;
 
       IF SQL%ROWCOUNT > 0 THEN
         SELF.Esito := OBJ_Esito.Imposta(200, 'Profilo eliminato con successo', NULL, NULL);
@@ -171,9 +182,8 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
         SELF.Esito := OBJ_Esito.Imposta(404, 'Profilo non trovato per eliminazione', 'Profilo non trovato per eliminazione', 'OBJ_Profilo.Elimina: Nessun record aggiornato');
       END IF;
 
-      EXCEPTION
+    EXCEPTION
       WHEN OTHERS THEN
-        -- Log dell'errore per debugging
         SELF.Esito := OBJ_Esito.Imposta(500, 'Profilo non eliminato per errore interno', 'Profilo non eliminato per errore interno' || SQLERRM, SQLERRM);
 
     END Elimina;
@@ -183,59 +193,60 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
   -- Carica il privilegio
   STATIC FUNCTION Carica(pIdProfilo IN NUMBER) RETURN OBJ_Profilo IS
     vProfilo OBJ_Profilo;
-  BEGIN
-    vProfilo := OBJ_Profilo();
+	  BEGIN
+	    vProfilo := OBJ_Profilo();
 
-    IF OBJ_Profilo.MioIdRuolo() IS NOT NULL THEN
+	    IF OBJ_Profilo.MioIdRuolo() IS NOT NULL THEN
 
-      SELECT ID_PROFILO
-          , ID_UTENTE
-          , ID_RUOLO
-          , NOME
-          , DATAINS
-          , UTENTEINS
-          , DATAAGG
-          , UTENTEAGG
-          , ATTIVO
-        INTO vProfilo.IdProfilo,
-            vProfilo.IdUtente,
-            vProfilo.IdRuolo,
-            vProfilo.Nome,
-            vProfilo.DataIns,
-            vProfilo.UtenteIns,
-            vProfilo.DataAgg,
-            vProfilo.UtenteAgg,
-            vProfilo.Attivo
-        FROM PROFILI PR
-        WHERE PR.ID_PROFILO  = pIdProfilo;
+	      SELECT ID_PROFILO
+	          , ID_UTENTE
+	          , ID_RUOLO
+	          , NOME
+	          , DATAINS
+	          , UTENTEINS
+	          , DATAAGG
+	          , UTENTEAGG
+	          , ATTIVO
+	        INTO vProfilo.IdProfilo,
+	            vProfilo.IdUtente,
+	            vProfilo.IdRuolo,
+	            vProfilo.Nome,
+	            vProfilo.DataIns,
+	            vProfilo.UtenteIns,
+	            vProfilo.DataAgg,
+	            vProfilo.UtenteAgg,
+	            vProfilo.Attivo
+	        FROM PROFILI PR
+	        WHERE PR.ID_PROFILO  = pIdProfilo;
 
-      IF vProfilo.IdProfilo IS NOT NULL THEN
-        vProfilo.Esito := OBJ_Esito.Imposta(200, 'Profilo caricato con successo', NULL, NULL);
-        RETURN vProfilo;
-      ELSE
-        vProfilo.Esito := OBJ_Esito.Imposta(204, 'Profilo non trovato', 'Profilo non trovato per i parametri forniti', NULL);
-        RETURN vProfilo;
-      END IF;
-    ELSE
-      -- Chiamante non autorizzato
-      vProfilo.Esito := OBJ_Esito.Imposta(401, 'Chiamante non autorizzato', 'Chiamante non autorizzato', NULL);
-      RETURN vProfilo;
-    END IF;
+	      IF vProfilo.IdProfilo IS NOT NULL THEN
+	        vProfilo.Esito := OBJ_Esito.Imposta(200, 'Profilo caricato con successo', NULL, NULL);
+	        RETURN vProfilo;
+	      ELSE
+	        vProfilo.Esito := OBJ_Esito.Imposta(204, 'Profilo non trovato', 'Profilo non trovato per i parametri forniti', NULL);
+	        RETURN vProfilo;
+	      END IF;
+	    ELSE
+	      -- Chiamante non autorizzato
+	      vProfilo.Esito := OBJ_Esito.Imposta(401, 'Chiamante non autorizzato', 'Chiamante non autorizzato', NULL);
+	      RETURN vProfilo;
+	    END IF;
 
-  EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      -- Profilo non trovato
-      vProfilo.Esito := OBJ_Esito.Imposta(204, 'Profilo non trovato, parametri errati', 'Profilo non trovato, parametri errati' || SQLERRM, SQLERRM);
-      RETURN vProfilo;
-    WHEN OTHERS THEN
-      -- Log dell'errore per debugging
-      vProfilo.Esito := OBJ_Esito.Imposta(500, 'Profilo non trovato per errore interno', 'Profilo non trovato per errore interno' || SQLERRM, SQLERRM);
-      RETURN vProfilo;
-  END Carica;
+	  EXCEPTION
+	    WHEN NO_DATA_FOUND THEN
+	      -- Profilo non trovato
+	      vProfilo.Esito := OBJ_Esito.Imposta(204, 'Profilo non trovato, parametri errati', 'Profilo non trovato, parametri errati' || SQLERRM, SQLERRM);
+	      RETURN vProfilo;
+	    WHEN OTHERS THEN
+	      -- Log dell'errore per debugging
+	      vProfilo.Esito := OBJ_Esito.Imposta(500, 'Profilo non trovato per errore interno', 'Profilo non trovato per errore interno' || SQLERRM, SQLERRM);
+	      RETURN vProfilo;
+	  END Carica;
   --------------------------------------------------------------------------
 
 
   -- Carica il contesto delle abilitazioni associate al profilo
+  -- !!! verificare se creare un richiamo a OBJ_Abilitazione
   STATIC FUNCTION CaricaContestoAbilitazioni(pIdProfilo IN NUMBER) RETURN NUMBER IS
     vIdAbilitazioni NUMBER;
     vAbilitazione OBJ_Abilitazione;
@@ -251,23 +262,22 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
            DATAAGG,
            UTENTEAGG,
            OPERATORE
-      FROM TBL_ABILITAZIONI
+      FROM ABILITAZIONI
      WHERE ID_PROFILO = pIdProfilo;
-  BEGIN
-    PKG_APP.PulisciContesto('CTX_APP_ABL');
+	  BEGIN
+	    PKG_APP.PulisciContesto('CTX_APP_ABL');
 
-    -- Ciclo sulle abilitazioni per caricare il contesto
-    FOR rec_abil IN cAbilitazioni LOOP
-      PKG_APP.AggiungiContesto('CTX_APP_ABL', rec_abil.CHIAVE, rec_abil.VALORE);
-    END LOOP;
+	    -- Ciclo sulle abilitazioni per caricare il contesto
+	    FOR rec_abil IN cAbilitazioni LOOP
+	      PKG_APP.AggiungiContesto('CTX_APP_ABL', rec_abil.CHIAVE, rec_abil.VALORE);
+	    END LOOP;
 
-    RETURN vIdAbilitazioni;
-  EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-      RETURN NULL;
-    WHEN OTHERS THEN
-      RETURN NULL;
-  END CaricaContestoAbilitazioni;
-
+	    RETURN vIdAbilitazioni;
+	  EXCEPTION
+	    WHEN NO_DATA_FOUND THEN
+	      RETURN NULL;
+	    WHEN OTHERS THEN
+	      RETURN NULL;
+	  END CaricaContestoAbilitazioni;
 
 END;

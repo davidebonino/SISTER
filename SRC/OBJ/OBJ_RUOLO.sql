@@ -50,7 +50,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Ruolo AS
            vRuolo.Descrizione,
            vRuolo.DataInizioValidita,
            vRuolo.DataFineValidita
-      FROM TBL_RUOLI RU
+      FROM TAB_RUOLI RU
        WHERE RU.ID_RUOLO  = pIdRuolo;
 
      IF vRuolo.IdRuolo IS NOT NULL THEN

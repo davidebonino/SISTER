@@ -92,7 +92,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
            vAbilitazione.DataAgg,
            vAbilitazione.UtenteAgg,
            vAbilitazione.Operatore
-      FROM TBL_ABILITAZIONI
+      FROM ABILITAZIONI
      WHERE Id_Chiave = pIdAbilitazione;
 
     IF vAbilitazione.IdChiave IS NOT NULL THEN
@@ -130,7 +130,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
       SELF.DataAgg   := SYSDATE;
       SELF.UtenteAgg := OBJ_Utente.MioIdUtente();
 
-      INSERT INTO TBL_ABILITAZIONI (
+      INSERT INTO ABILITAZIONI (
         Id_Chiave,
         Id_Profilo,
         Tipo,
@@ -178,7 +178,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
       SELF.DataAgg   := SYSDATE;
       SELF.UtenteAgg := OBJ_Utente.MioIdUtente();
 
-      UPDATE TBL_ABILITAZIONI A SET
+      UPDATE ABILITAZIONI A SET
         Id_Profilo = SELF.IdProfilo,
         Tipo = SELF.Tipo,
         Chiave = SELF.Chiave,
@@ -217,7 +217,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
       SELF.DataAgg   := SYSDATE;
       SELF.UtenteAgg := OBJ_Utente.MioIdUtente();
 
-      DELETE FROM TBL_ABILITAZIONI
+      DELETE FROM ABILITAZIONI
       WHERE Id_Chiave = SELF.IdChiave;
 
       IF SQL%ROWCOUNT > 0 THEN

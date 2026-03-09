@@ -7,10 +7,10 @@
 -- primitive Oracle (UTL_CALL_STACK, DBMS_SESSION, SYS_CONTEXT) in modo
 -- da non dipendere da PKG_APP ed evitare il riferimento circolare:
 --
---   OBJ_Esito  ←── campo di OBJ_Profilatore
---                       ←── base di tutti i sottotipi
---                               ←── usati da PKG_APP
---                                       ←── (ex) chiamato da OBJ_Esito  🔴
+--   OBJ_Esito  ── campo di OBJ_Profilatore
+--                       ── base di tutti i sottotipi
+--                               ── usati da PKG_APP
+--                                       ── (ex) chiamato da OBJ_Esito
 --
 -- Utilizzo nei metodi CRUD e in PKG_APP.VerificaAccesso:
 --   vEsito := OBJ_Esito.Imposta(...);

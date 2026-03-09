@@ -29,7 +29,7 @@ CREATE OR REPLACE TYPE OBJ_Utente UNDER OBJ_Profilatore (
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN,
   MEMBER PROCEDURE Crea,
   MEMBER PROCEDURE Modifica,
-  MEMBER PROCEDURE Elimina,
+  MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE),
   CONSTRUCTOR FUNCTION OBJ_Utente RETURN SELF AS RESULT
   );
 
@@ -209,8 +209,10 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
     --------------------------------------------------------------------------
 
 
-  -- Elimina un oggetto Utente nel database (soft delete) impostando Attivo a 'N'
-  MEMBER PROCEDURE Elimina IS
+  -- Elimina un oggetto Utente nel database.
+  -- pFisica = FALSE (default): soft delete (Attivo = 'N')
+  -- pFisica = TRUE: eliminazione fisica del record
+  MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE) IS
     vEsitoAccesso OBJ_Esito;
     BEGIN
 
@@ -220,15 +222,23 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
         RETURN;
       END IF;
 
-      SELF.DataAgg       := SYSDATE;
-      SELF.UtenteAgg     := OBJ_Utente.MioIdUtente();
-      SELF.Attivo        := 'N';
+      IF pFisica THEN
+        --Cancellazione fisica
+        DELETE FROM UTENTI
+        WHERE Id_Utente = SELF.IdUtente;
+      ELSE
+        --Cancellazione logica (soft delete)
+        SELF.DataAgg   := SYSDATE;
+        SELF.UtenteAgg := OBJ_Utente.MioIdUtente();
+        SELF.Attivo    := 'N';
 
-      UPDATE UTENTI SET
-        Attivo = SELF.Attivo,
-        DataAgg = SELF.DataAgg,
-        UtenteAgg = SELF.UtenteAgg
-      WHERE Id_Utente = SELF.IdUtente;
+        UPDATE UTENTI SET
+          Attivo    = SELF.Attivo,
+          DataAgg   = SELF.DataAgg,
+          UtenteAgg = SELF.UtenteAgg
+        WHERE Id_Utente = SELF.IdUtente;
+
+      END IF;
 
       IF SQL%ROWCOUNT > 0 THEN
         SELF.Esito := OBJ_Esito.Imposta(200, 'Utente eliminato con successo', NULL, NULL);
@@ -236,11 +246,9 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
         SELF.Esito := OBJ_Esito.Imposta(404, 'Utente non trovato per eliminazione', 'Utente non trovato per eliminazione', 'OBJ_Utente.Elimina: Nessun record aggiornato');
       END IF;
 
-      EXCEPTION
+    EXCEPTION
       WHEN OTHERS THEN
-        -- Log dell'errore per debugging
         SELF.Esito := OBJ_Esito.Imposta(500, 'Utente non eliminato per errore interno', 'Utente non eliminato per errore interno' || SQLERRM, SQLERRM);
-
     END Elimina;
     --------------------------------------------------------------------------
 
