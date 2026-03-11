@@ -1,10 +1,36 @@
---CREATE CONTEXT CTX_APP_IDS USING PKG_APP;
---CREATE CONTEXT CTX_APP_PAR USING PKG_APP;
---CREATE CONTEXT CTX_APP_ABL USING PKG_APP;
---CREATE CONTEXT CTX_APP_FLT USING PKG_APP;
---CREATE CONTEXT CTX_APP_LOG USING PKG_APP;
+-- Creazione dei contesti applicativi Oracle (eseguire una sola volta come DBA):
+--   CREATE CONTEXT CTX_APP_IDS USING PKG_APP;   -- Identita di sessione
+--   CREATE CONTEXT CTX_APP_PAR USING PKG_APP;   -- Parametri di sistema
+--   CREATE CONTEXT CTX_APP_ABL USING PKG_APP;   -- Filtri di autorizzazione profilo
+--   CREATE CONTEXT CTX_APP_FLT USING PKG_APP;   -- Filtri di ricerca runtime
+--   CREATE CONTEXT CTX_APP_LOG USING PKG_APP;   -- Buffer log applicativo
 
-
+----------------------------------------------------------------------------
+-- PKG_APP — Package principale dell'applicazione SISTER
+--
+-- SCOPO
+--   Punto di ingresso per l'inizializzazione della sessione applicativa e
+--   per la verifica centralizzata degli accessi RBAC. Gestisce inoltre
+--   i contesti Oracle (Application Context) e il sistema di logging.
+--
+-- FUNZIONI PRINCIPALI
+--   Inizializza(username, password, idProfilo) — avvia la sessione:
+--     autentica l'utente, carica profilo/ruolo/abilitazioni, popola CTX_APP_IDS
+--   VerificaAccesso(tipoAzione, oggetto, ambito, controlliLogici) — RBAC:
+--     verifica in sequenza autenticazione → azione → privilegio → controlli logici
+--
+-- GESTIONE CONTESTI
+--   CreaContesto / EsisteContesto / AggiungiContesto /
+--   RimuoviContesto / PulisciContesto / VisualizzaContesto
+--
+-- DIPENDENZE CIRCOLARI
+--   Il logging in VerificaAccesso e delegato a vEsito.Log() (OBJ_Esito) che
+--   usa DBMS_SESSION direttamente, evitando: PKG_APP → OBJ_Esito → PKG_APP.
+--
+-- SCHEMA
+--   Compilato sotto SISTER_TST; non inserire schema esplicito nel codice
+--   delle TYPE e dei chiamanti.
+----------------------------------------------------------------------------
 CREATE OR REPLACE PACKAGE SISTER_TST.PKG_APP AS
 
   -- Costanti per i livelli di debug
@@ -117,7 +143,16 @@ CREATE OR REPLACE PACKAGE BODY SISTER_TST.PKG_APP AS
   END IncrementaContatorLog;
 
 
-  -- Inizializzazione della sessione applicativa
+  -- Inizializzazione della sessione applicativa.
+  -- Sequenza di operazioni:
+  --   1. Reset parametri di sistema in CTX_APP_PAR (debug off, log counter a 0)
+  --   2. OBJ_Sessione.Crea → verifica credenziali, inserisce TBL_SESSIONI
+  --   3. Popola CTX_APP_IDS: ID_SESSIONE, ID_PROFILO, ID_RUOLO
+  --   4. OBJ_Profilo.Carica → carica dati del profilo
+  --   5. OBJ_Profilo.CaricaContestoAbilitazioni → popola CTX_APP_ABL
+  --   6. OBJ_Utente.Carica → carica dati utente, popola ID_UTENTE in CTX_APP_IDS
+  -- Restituisce TRUE se tutte le fasi hanno successo, FALSE al primo fallimento.
+  -- In caso di errore, scrive il motivo con DBMS_OUTPUT (utile per debug in SQL Developer).
   FUNCTION Inizializza(pUsername IN VARCHAR2, pKeyword IN VARCHAR2, pIdProfilo IN NUMBER) RETURN BOOLEAN AS
     vSessione        OBJ_Sessione;
     vProfilo         OBJ_Profilo;
@@ -228,8 +263,25 @@ CREATE OR REPLACE PACKAGE BODY SISTER_TST.PKG_APP AS
   END VisualizzaContesto;
 
 
-  -- VERIFICA ACCESSO
-  -- Il logging viene delegato a vEsito.Log() — metodo di OBJ_Esito che usa
+  -- VerificaAccesso: verifica centralizzata di autenticazione e autorizzazione RBAC.
+  --
+  -- Flusso di controllo (fail-fast: esce al primo errore):
+  --   Passo 1 → autenticazione: MioIdRuolo() IS NULL → 401 (sessione non inizializzata)
+  --   Passo 2 → ricerca azione: OBJ_Azione.Cerca(tipo, oggetto, ambito)
+  --             → NULL: 401 azione non configurata in TBL_AZIONI
+  --   Passo 3 → verifica privilegio: OBJ_Privilegio.Cerca(idAzione, idRuolo)
+  --             → NULL: 401 privilegio mancante per il ruolo corrente
+  --   Passo 4 → controlli logici: pControlliLogici = FALSE → 400 dati non validi
+  --   Successo → 200 (non loggato per non inquinare il log con i successi)
+  --
+  -- Parametri:
+  --   pTipoAzione      — tipo di operazione (es. 'INSERIMENTO', 'MODIFICA', 'ELIMINAZIONE')
+  --   pOggetto         — oggetto su cui si opera (es. 'UTENTE', 'PROFILO')
+  --   pAmbito          — contesto/ambito opzionale (NULL = nessun ambito specifico)
+  --   pControlliLogici — risultato di SELF.ControlliLogici() del chiamante;
+  --                      passare TRUE se non applicabile (es. Elimina)
+  --
+  -- Il logging e delegato a vEsito.Log() — metodo di OBJ_Esito che usa
   -- DBMS_SESSION e UTL_CALL_STACK direttamente, senza dipendere da PKG_APP.
   FUNCTION VerificaAccesso(
     pTipoAzione      IN VARCHAR2,

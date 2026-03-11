@@ -1,5 +1,32 @@
 ----------------------------------------------------------------------------
---  Azione
+-- OBJ_Azione — Operazione atomica del sistema (catalogo delle azioni autorizzabili)
+--
+-- SCOPO
+--   Rappresenta una singola operazione eseguibile nel sistema. Il catalogo delle
+--   azioni e la base del sistema RBAC: ogni operazione CRUD di ogni oggetto deve
+--   avere una corrispondente azione in TBL_AZIONI per poter essere autorizzata
+--   tramite TBL_PRIVILEGI.
+--
+-- IDENTIFICAZIONE
+--   Un'azione e identificata dalla tripla (Tipo, Oggetto, Ambito):
+--     Tipo    — tipo di operazione (es. 'INSERIMENTO', 'MODIFICA', 'ELIMINAZIONE', 'VISUALIZZAZIONE')
+--     Oggetto — entita su cui agisce (es. 'UTENTE', 'PROFILO', 'AZIONE')
+--     Ambito  — contesto opzionale per specializzazioni (NULL = generico)
+--
+-- OVERLOADING Carica
+--   Carica(pIdAzione)               — carica per ID, richiede sessione attiva
+--   Carica(pTipo, pOggetto, pAmbito) — carica per tripla, senza verifica sessione
+--                                      (usato da PKG_APP.VerificaAccesso)
+--
+-- METODO Cerca
+--   Cerca(pTipo, pOggetto, pAmbito) → restituisce IdAzione o NULL
+--   Usato da PKG_APP.VerificaAccesso come primo step del controllo RBAC.
+--
+-- NOTA: Azione non implementa soft delete (Attivo non presente).
+--       Sviluppo futuro: allineare a pattern Utente/Profilo/Privilegio.
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore; referenziato da OBJ_Privilegio (IdAzione)
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Azione UNDER OBJ_Profilatore (
   IdAzione    NUMBER,

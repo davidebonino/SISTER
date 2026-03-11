@@ -1,3 +1,32 @@
+----------------------------------------------------------------------------
+-- TEST_APP.sql — Script di test integrato per la libreria SISTER
+--
+-- SCOPO
+--   Verifica funzionale di tutti i tipi Oracle e del package PKG_APP.
+--   Ogni procedura di test e isolata e indipendente; i test BuildWhere (TBW*)
+--   non scrivono su DB (solo Application Context, nessun SAVEPOINT necessario).
+--
+-- PREREQUISITI
+--   - Sessione inizializzata con PKG_APP.Inizializza() prima dell'esecuzione
+--   - Credenziali di test valide in UTENTI/PROFILI (es. 'davide.bonino', profilo 17460)
+--   - Azioni e privilegi configurati in TBL_AZIONI e TBL_PRIVILEGI
+--
+-- PROCEDURE DI TEST
+--   TAZ1(pIdAzione)      — test CRUD completo su OBJ_Azione
+--   TUT1(pIdUtente)      — test CRUD completo su OBJ_Utente
+--   TPR1(pIdProfilo)     — test CRUD completo su OBJ_Profilo
+--   TPV1(pIdPrivilegio)  — test CRUD singolo su OBJ_Privilegio
+--   TPV2(pIdAzione, pIdRuolo) — verifica soft delete e cancellazione fisica OBJ_Privilegio
+--   TPV3(pIdAzione, pIdRuolo) — verifica Carica per coppia e Cerca
+--   TAB1(pIdSessione, pIdAbilitazione) — test CRUD su OBJ_Abilitazione
+--   TRU1(pIdRuolo)       — test lettura OBJ_Ruolo
+--   TSE1(username, password, idProfilo) — test creazione e caricamento sessione
+--   TBW1..TBW8           — test metodo BuildWhere con vari scenari
+--
+-- ESECUZIONE SELETTIVA
+--   Decommenta le righe nella sezione BEGIN per eseguire test specifici.
+--   I test TBW* sono attivi per default; gli altri sono commentati.
+----------------------------------------------------------------------------
 DECLARE
   Azione       OBJ_Azione;
   Utente       OBJ_Utente;
@@ -358,212 +387,212 @@ DECLARE
   PROCEDURE TBW1 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW1 - BUILDWHERE: FLT LIKE VARCHAR2');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW1 - BUILDWHERE: FLT LIKE VARCHAR2');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW1 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF INSTR(vWhere, q'[COGNOME LIKE 'B%']') > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW1 OK');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW1 KO: predicato atteso assente');
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW1 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW1;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW1 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF INSTR(vWhere, q'[COGNOME LIKE 'B%']') > 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW1 OK');
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW1 KO: predicato atteso assente');
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW1 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW1;
 
 
   -- TBW2: FLT singolo, = su NUMBER
   PROCEDURE TBW2 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW2 - BUILDWHERE: FLT = NUMBER');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ID_UTENTE', '237|=');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW2 - BUILDWHERE: FLT = NUMBER');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ID_UTENTE', '237|=');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW2 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF INSTR(vWhere, 'ID_UTENTE = 237') > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW2 OK');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW2 KO: predicato atteso assente');
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW2 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW2;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW2 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF INSTR(vWhere, 'ID_UTENTE = 237') > 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW2 OK');
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW2 KO: predicato atteso assente');
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW2 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW2;
 
 
   -- TBW3: FLT multipli, combinazione AND
   PROCEDURE TBW3 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW3 - BUILDWHERE: FLT multipli AND');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO',  'S|=');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW3 - BUILDWHERE: FLT multipli AND');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO',  'S|=');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW3 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF INSTR(vWhere, 'COGNOME') > 0 AND INSTR(vWhere, 'ATTIVO') > 0 AND INSTR(vWhere, ' AND ') > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW3 OK');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW3 KO: AND con entrambi i predicati assente');
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW3 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW3;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW3 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF INSTR(vWhere, 'COGNOME') > 0 AND INSTR(vWhere, 'ATTIVO') > 0 AND INSTR(vWhere, ' AND ') > 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW3 OK');
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW3 KO: AND con entrambi i predicati assente');
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW3 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW3;
 
 
   -- TBW4: ABL + FLT stesso campo, stesso valore → deduplicazione (nessun IN, nessun avviso)
   PROCEDURE TBW4 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW4 - BUILDWHERE: ABL + FLT stesso valore, deduplicazione');
-    PKG_APP.PulisciContesto('CTX_APP_ABL');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'ATTIVO', 'S|=');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO', 'S|=');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW4 - BUILDWHERE: ABL + FLT stesso valore, deduplicazione');
+	    PKG_APP.PulisciContesto('CTX_APP_ABL');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'ATTIVO', 'S|=');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO', 'S|=');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW4 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF vUtente.Esito.DebugInfo IS NULL AND INSTR(vWhere, ' IN ') = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW4 OK: nessun avviso, nessun IN (valore deduplicato)');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW4 KO: avviso o IN inatteso - DebugInfo: ' || NVL(vUtente.Esito.DebugInfo, 'NULL'));
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW4 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_ABL');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW4;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW4 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF vUtente.Esito.DebugInfo IS NULL AND INSTR(vWhere, ' IN ') = 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW4 OK: nessun avviso, nessun IN (valore deduplicato)');
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW4 KO: avviso o IN inatteso - DebugInfo: ' || NVL(vUtente.Esito.DebugInfo, 'NULL'));
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW4 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_ABL');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW4;
 
 
   -- TBW5: ABL + FLT stesso campo, valori diversi → IN clause + avviso
   PROCEDURE TBW5 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW5 - BUILDWHERE: FLT allarga visibilità ABL, avviso atteso');
-    PKG_APP.PulisciContesto('CTX_APP_ABL');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'ATTIVO', 'S|=');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO', 'N|=');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW5 - BUILDWHERE: FLT allarga visibilità ABL, avviso atteso');
+	    PKG_APP.PulisciContesto('CTX_APP_ABL');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'ATTIVO', 'S|=');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO', 'N|=');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW5 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF vUtente.Esito.DebugInfo IS NOT NULL AND INSTR(vWhere, ' IN ') > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW5 OK: avviso presente, IN clause generata');
-        DBMS_OUTPUT.PUT_LINE('TBW5 Avviso: ' || vUtente.Esito.DebugInfo);
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW5 KO: avviso assente o IN assente');
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW5 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_ABL');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW5;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW5 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF vUtente.Esito.DebugInfo IS NOT NULL AND INSTR(vWhere, ' IN ') > 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW5 OK: avviso presente, IN clause generata');
+	        DBMS_OUTPUT.PUT_LINE('TBW5 Avviso: ' || vUtente.Esito.DebugInfo);
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW5 KO: avviso assente o IN assente');
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW5 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_ABL');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW5;
 
 
   -- TBW6: sinonimo non riconosciuto → errore 400, pWhere NULL
   PROCEDURE TBW6 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW6 - BUILDWHERE: sinonimo sconosciuto, errore 400 atteso');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'CAMPO_IGNOTO', 'X|=');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW6 - BUILDWHERE: sinonimo sconosciuto, errore 400 atteso');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'CAMPO_IGNOTO', 'X|=');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 400 AND vWhere IS NULL THEN
-      DBMS_OUTPUT.PUT_LINE('TBW6 OK: errore 400 e WHERE NULL come atteso');
-      DBMS_OUTPUT.PUT_LINE('TBW6 Messaggio: ' || vUtente.Esito.Messaggio);
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW6 KO - StatusCode: ' || vUtente.Esito.StatusCode || ', WHERE: ' || NVL(vWhere, 'NULL'));
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW6;
+	    IF vUtente.Esito.StatusCode = 400 AND vWhere IS NULL THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW6 OK: errore 400 e WHERE NULL come atteso');
+	      DBMS_OUTPUT.PUT_LINE('TBW6 Messaggio: ' || vUtente.Esito.Messaggio);
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW6 KO - StatusCode: ' || vUtente.Esito.StatusCode || ', WHERE: ' || NVL(vWhere, 'NULL'));
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW6;
 
 
   -- TBW7: operatore BETWEEN su NUMBER
   PROCEDURE TBW7 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW7 - BUILDWHERE: BETWEEN NUMBER');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ID_UTENTE', '100;500|BETWEEN');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW7 - BUILDWHERE: BETWEEN NUMBER');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ID_UTENTE', '100;500|BETWEEN');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere(NULL, vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere(NULL, vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW7 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF INSTR(vWhere, 'ID_UTENTE BETWEEN 100 AND 500') > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW7 OK');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW7 KO: predicato BETWEEN atteso assente');
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW7 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW7;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW7 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF INSTR(vWhere, 'ID_UTENTE BETWEEN 100 AND 500') > 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW7 OK');
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW7 KO: predicato BETWEEN atteso assente');
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW7 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW7;
 
 
   -- TBW8: IS NOT NULL con alias tabella
   PROCEDURE TBW8 AS
     vUtente OBJ_Utente;
     vWhere  VARCHAR2(32767);
-  BEGIN
-    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW8 - BUILDWHERE: IS NOT NULL con alias');
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'EMAIL', '|NOTNULL');
+	  BEGIN
+	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW8 - BUILDWHERE: IS NOT NULL con alias');
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'EMAIL', '|NOTNULL');
 
-    vUtente := OBJ_Utente();
-    vUtente.BuildWhere('U', vWhere);
+	    vUtente := OBJ_Utente();
+	    vUtente.BuildWhere('U', vWhere);
 
-    IF vUtente.Esito.StatusCode = 200 THEN
-      DBMS_OUTPUT.PUT_LINE('TBW8 WHERE: ' || NVL(vWhere, '(vuota)'));
-      IF INSTR(vWhere, 'U.EMAIL IS NOT NULL') > 0 THEN
-        DBMS_OUTPUT.PUT_LINE('TBW8 OK');
-      ELSE
-        DBMS_OUTPUT.PUT_LINE('TBW8 KO: predicato IS NOT NULL con alias assente');
-      END IF;
-    ELSE
-      DBMS_OUTPUT.PUT_LINE('TBW8 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
-    END IF;
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
-  END TBW8;
+	    IF vUtente.Esito.StatusCode = 200 THEN
+	      DBMS_OUTPUT.PUT_LINE('TBW8 WHERE: ' || NVL(vWhere, '(vuota)'));
+	      IF INSTR(vWhere, 'U.EMAIL IS NOT NULL') > 0 THEN
+	        DBMS_OUTPUT.PUT_LINE('TBW8 OK');
+	      ELSE
+	        DBMS_OUTPUT.PUT_LINE('TBW8 KO: predicato IS NOT NULL con alias assente');
+	      END IF;
+	    ELSE
+	      DBMS_OUTPUT.PUT_LINE('TBW8 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	    END IF;
+	    PKG_APP.PulisciContesto('CTX_APP_FLT');
+	  END TBW8;
 
 
   -- TEST: SESSIONE -------------------------------------------
@@ -628,13 +657,13 @@ BEGIN
     --TPR1(237);
 
     -- ESECUZIONE TEST PRIVILEGIO - singolo oggetto CRUD
-    TPV1(1);
+    --TPV1(1);
 
     -- ESECUZIONE TEST PRIVILEGIO - eliminazione soft e fisica
-    TPV2(10, 100);
+    --TPV2(10, 100);
 
     -- ESECUZIONE TEST PRIVILEGIO - Carica per Azione/Ruolo e Cerca
-    TPV3(10, 100);
+    --TPV3(10, 100);
 
     -- ESECUZIONE TEST ABILITAZIONE
     --TAB1(SYS_CONTEXT('CTX_APP_IDS', 'ID_SESSIONE'), 1);
@@ -645,7 +674,14 @@ BEGIN
     -- ESECUZIONE TEST SESSIONE
     --TSE1('davide.bonino', 'Peter_Pan', 17460);
 
-
+    TBW1();
+    TBW2();
+    TBW3();
+    TBW4();
+    TBW5();
+    TBW6();
+    TBW7();
+    TBW8();
 
     COMMIT;
 

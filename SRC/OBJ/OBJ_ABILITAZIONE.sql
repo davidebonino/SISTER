@@ -1,5 +1,28 @@
 ----------------------------------------------------------------------------
---  Abilitazione
+-- OBJ_Abilitazione — Filtro di autorizzazione associato a un profilo utente
+--
+-- SCOPO
+--   Rappresenta un singolo filtro di visibilita per un profilo. Il profilo
+--   puo avere piu abilitazioni, ognuna definisce una restrizione (Chiave=Valore
+--   con Operatore) che viene caricata in CTX_APP_ABL durante l'inizializzazione
+--   della sessione e usata da BuildWhere per filtrare le query.
+--
+-- STRUTTURA DEL FILTRO
+--   Chiave    — nome logico del campo (es. 'ATTIVO', 'ID_PROFILO')
+--   Valore    — valore del filtro (es. 'S', '210')
+--   Operatore — operatore SQL (es. '=', 'LIKE', '<>')
+--   Tipo      — tipo di filtro (uso interno; da documentare meglio)
+--
+-- FORMATO IN CTX_APP_ABL
+--   Dopo CaricaContestoAbilitazioni, le abilitazioni vengono raggruppate:
+--   chiave = 'ATTIVO', valore nel contesto = 'S;N|=' (valori multipli uniti con ;)
+--
+-- NOTE SVILUPPO
+--   - Il commento nel codice segnala che Elimina non ha Attivo (delete fisico)
+--   - Sviluppo futuro: aggiungere Attivo per allineare a pattern soft delete
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore; FK su PROFILI (IdProfilo)
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Abilitazione UNDER OBJ_Profilatore (
   IdChiave NUMBER,

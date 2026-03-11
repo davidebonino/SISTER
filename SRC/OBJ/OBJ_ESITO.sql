@@ -1,26 +1,39 @@
 ----------------------------------------------------------------------------
--- Esito
+-- OBJ_Esito — Tipo Oracle per la gestione strutturata dei risultati operativi
+--
 -- Rappresenta il risultato di un'operazione: stato HTTP, messaggio,
 -- lista errori e informazioni di debug.
 --
--- Il metodo Log() scrive l'esito in CTX_APP_LOG usando esclusivamente
--- primitive Oracle (UTL_CALL_STACK, DBMS_SESSION, SYS_CONTEXT) in modo
--- da non dipendere da PKG_APP ed evitare il riferimento circolare:
+-- SCOPO
+--   Tipo di ritorno standard per tutti i metodi CRUD e di servizio della
+--   libreria SISTER. Garantisce uniformita nelle risposte, sia per chiamate
+--   interne PL/SQL sia per esposizione tramite ORDS.
 --
---   OBJ_Esito  ── campo di OBJ_Profilatore
---                       ── base di tutti i sottotipi
---                               ── usati da PKG_APP
---                                       ── (ex) chiamato da OBJ_Esito
+-- DIPENDENZE CIRCOLARI
+--   Il metodo Log() scrive in CTX_APP_LOG usando esclusivamente primitive
+--   Oracle (UTL_CALL_STACK, DBMS_SESSION, SYS_CONTEXT) senza dipendere da
+--   PKG_APP. Questo rompe il riferimento circolare:
+--     OBJ_Esito → campo di OBJ_Profilatore
+--                → base di tutti i sottotipi
+--                  → usati da PKG_APP
+--                    → (ex) chiamato da OBJ_Esito   -- ELIMINATO
 --
--- Utilizzo nei metodi CRUD e in PKG_APP.VerificaAccesso:
---   vEsito := OBJ_Esito.Imposta(...);
---   vEsito.Log();          -- scrive in CTX_APP_LOG e aggiorna il contatore
+-- UTILIZZO STANDARD nei metodi CRUD e in PKG_APP.VerificaAccesso:
+--   vEsito := OBJ_Esito.Imposta(401, 'Non autorizzato', 'dettaglio', 'debug');
+--   vEsito.Log();   -- scrive in CTX_APP_LOG e aggiorna il contatore progressivo
 --   RETURN vEsito;
 --
--- Formato voce in CTX_APP_LOG:
---   chiave : LOG_0000001, LOG_0000002, ...  (ordinamento lessicografico = cronologico)
+-- FORMATO VOCE IN CTX_APP_LOG
+--   chiave : LOG_0000001, LOG_0000002, ...  (padding 7 cifre per ordinamento
+--            lessicografico = cronologico)
 --   valore : {"contatore":N,"livello":"INFO|WARN|ERROR","status":NNN,
 --             "messaggio":"...","posizione":"...","errori":[...]}
+--
+-- CODICI HTTP UTILIZZATI
+--   200 = Successo            201 = Creato
+--   400 = Dati non validi     401 = Non autorizzato
+--   403 = Accesso vietato     404 = Risorsa non trovata
+--   409 = Conflitto           500 = Errore interno del server
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Esito AS OBJECT (
   StatusCode   NUMBER,          -- Stato HTTP: 200, 201, 400, 401, 403, 404, 409, 500, ...
@@ -45,7 +58,9 @@ CREATE OR REPLACE TYPE OBJ_Esito AS OBJECT (
 
 CREATE OR REPLACE TYPE BODY OBJ_Esito AS
 
-  -- Costruttore: esito di default positivo
+  -- Costruttore: esito di default positivo (200 / 'Successo').
+  -- Utilizzato quando si crea un oggetto senza specificare i campi,
+  -- ad esempio prima di verificare l'esito di un'operazione successiva.
   CONSTRUCTOR FUNCTION OBJ_Esito RETURN SELF AS RESULT IS
   BEGIN
     SELF.StatusCode := 200;
@@ -59,6 +74,16 @@ CREATE OR REPLACE TYPE BODY OBJ_Esito AS
   -- Costruisce e restituisce un esito con i campi forniti.
   -- Non esegue logging: chiamare vEsito.Log() subito dopo se necessario.
   -- pErrore viene serializzato come array JSON nel campo Errori.
+  --
+  -- Parametri:
+  --   pStatusCode (NUMBER)     — codice HTTP (es. 200, 400, 401, 500)
+  --   pMessaggio  (VARCHAR2)   — messaggio sintetico leggibile dall'utente finale
+  --   pErrore     (VARCHAR2)   — dettaglio tecnico (es. SQLERRM); serializzato in Errori
+  --   pDebugInfo  (VARCHAR2)   — informazioni di debug non sensibili (posizione nel codice)
+  --
+  -- Esempio:
+  --   SELF.Esito := OBJ_Esito.Imposta(200, 'Utente creato', NULL, NULL);
+  --   SELF.Esito := OBJ_Esito.Imposta(401, 'Non autorizzato', SQLERRM, 'OBJ_Utente.Crea');
   STATIC FUNCTION Imposta(
     pStatusCode IN NUMBER,
     pMessaggio  IN VARCHAR2,

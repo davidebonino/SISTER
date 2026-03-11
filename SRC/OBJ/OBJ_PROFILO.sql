@@ -1,5 +1,24 @@
 ----------------------------------------------------------------------------
---  Profilo
+-- OBJ_Profilo — Profilo applicativo utente con caricamento del contesto abilitazioni
+--
+-- SCOPO
+--   Rappresenta la combinazione utente-ruolo che definisce il contesto di lavoro
+--   nell'applicazione. Un utente puo avere piu profili (es. amministratore,
+--   operatore); al login viene scelto uno specifico profilo tramite pIdProfilo.
+--
+-- METODO SPECIALE: CaricaContestoAbilitazioni(pIdProfilo)
+--   Carica tutti i filtri di autorizzazione del profilo nella tabella ABILITAZIONI
+--   e li scrive in CTX_APP_ABL nel formato "VALORI|OPERATORE" (semicolon-separated
+--   per valori multipli con stesso operatore).
+--   Usato da PKG_APP.Inizializza per preparare il contesto di visibilita.
+--   Nota: !!! verificare se creare un richiamo a OBJ_Abilitazione (segnalato nel codice)
+--
+-- SOFT DELETE
+--   Attivo='S' (attivo) / Attivo='N' (disattivato)
+--   Elimina(pFisica=FALSE) → soft delete; Elimina(pFisica=TRUE) → cancellazione fisica
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore; referenziato da OBJ_Abilitazione (FK ID_PROFILO)
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Profilo UNDER OBJ_Profilatore (
   IdProfilo     NUMBER,

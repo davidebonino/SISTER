@@ -1,5 +1,22 @@
 ----------------------------------------------------------------------------
---  Ruolo
+-- OBJ_Ruolo — Ruolo applicativo con validita temporale
+--
+-- SCOPO
+--   Rappresenta un ruolo nel sistema RBAC (Role-Based Access Control).
+--   Il ruolo definisce l'insieme di azioni che un utente puo compiere
+--   tramite la tabella TBL_PRIVILEGI (associazione ruolo-azione).
+--
+-- OPERAZIONI DISPONIBILI
+--   Solo Carica() — il ruolo e un'entita di configurazione gestita fuori
+--   dal ciclo CRUD applicativo standard. Non implementa Crea/Modifica/Elimina.
+--
+-- VALIDITA TEMPORALE
+--   DataInizioValidita / DataFineValidita — periodo di validita del ruolo.
+--   La verifica della validita e responsabilita del chiamante.
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore; referenziato da OBJ_Profilo (IdRuolo) e
+--   OBJ_Privilegio (IdRuolo)
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Ruolo UNDER OBJ_Profilatore (
   IdRuolo             NUMBER,

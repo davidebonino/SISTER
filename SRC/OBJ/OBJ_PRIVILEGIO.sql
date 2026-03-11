@@ -1,5 +1,27 @@
 ----------------------------------------------------------------------------
---  Privilegio
+-- OBJ_Privilegio — Associazione ruolo-azione nel sistema RBAC
+--
+-- SCOPO
+--   Rappresenta il legame tra un ruolo (IdRuolo) e un'azione (IdAzione).
+--   L'esistenza di un privilegio attivo (Attivo='S') per la coppia
+--   (idAzione, idRuolo) e la condizione necessaria per consentire
+--   l'esecuzione di un'operazione da parte di un utente con quel ruolo.
+--
+-- UTILIZZO NEL FLUSSO RBAC
+--   PKG_APP.VerificaAccesso chiama OBJ_Privilegio.Cerca(idAzione, idRuolo):
+--   - restituisce IdPrivilegio se esiste un privilegio attivo
+--   - restituisce NULL se il ruolo non ha il permesso → 401
+--
+-- OVERLOADING Carica
+--   Carica(pIdPrivilegio)           — carica per ID diretto
+--   Carica(pIdAzione, pIdRuolo)      — carica per coppia azione-ruolo (piu usato)
+--
+-- SOFT DELETE
+--   Attivo='S' (attivo) / Attivo='N' (disattivato)
+--   Elimina(pFisica=FALSE) → soft delete; Elimina(pFisica=TRUE) → cancellazione fisica
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore; FK su TBL_AZIONI (IdAzione) e TAB_RUOLI (IdRuolo)
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Privilegio UNDER OBJ_Profilatore (
   IdPrivilegio  NUMBER,

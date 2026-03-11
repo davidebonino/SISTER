@@ -46,9 +46,19 @@ SISTER/
 │   │   └── OBJ_ABILITAZIONE.sql   # Filtri di autorizzazione per profilo con CRUD
 │   ├── PKG/
 │   │   └── PKG_APP.sql            # Package principale: Inizializza(), VerificaAccesso()
-│   └── TEST_APP.sql               # Script di test integrato (TAZ1, TUT1, TPR1, TPV1, TAB1, TRU1, TSE1, TBW1, TBW2, TBW3)
+│   └── TEST_APP.sql               # Script di test integrato (TAZ1, TUT1, TPR1, TPV1, TPV2,
+│                                  # TPV3, TAB1, TRU1, TSE1, TBW1..TBW8)
 └── DOC/
-    └── setup.md                   # Documentazione di setup e configurazione DB
+    ├── README.md                  # Indice documentazione tecnica
+    ├── setup.md                   # Documentazione di setup e configurazione DB
+    ├── DOCUMENTAZIONE_TECNICA.md  # [NON AGGIORNATA — ignorare; usare DOC/README.md]
+    ├── api/                       # Documentazione REST API
+    │   ├── overview.md            # Panoramica architettura API
+    │   ├── authentication.md      # Flusso di autenticazione
+    │   ├── error-codes.md         # Codici di errore standard
+    │   └── endpoints/             # Endpoint per entità
+    └── guide/
+        └── getting-started.md    # Guida rapida all'integrazione
 ```
 
 ---
@@ -93,6 +103,30 @@ L'ordine è imposto dalle dipendenze tra TYPE SPEC. Compilare sempre i TYPE SPEC
 > tramite `PKG_APP` (es. `OBJ_Azione` ↔ `OBJ_Utente` via `PKG_APP.VerificaAccesso`).
 > Oracle risolve questi cicli a runtime; è sufficiente compilare tutti i TYPE SPEC prima
 > dei TYPE BODY e PKG_APP per ultimo.
+
+---
+
+## Test Disponibili in TEST_APP.sql
+
+| Procedura | Oggetto testato | Operazioni |
+|-----------|-----------------|------------|
+| `TAZ1(pIdAzione)` | OBJ_Azione | Carica, Crea, Modifica, Elimina |
+| `TUT1(pIdUtente)` | OBJ_Utente | Carica, Crea, Modifica, Elimina |
+| `TPR1(pIdProfilo)` | OBJ_Profilo | Carica, Crea, Modifica, Elimina |
+| `TPV1(pIdPrivilegio)` | OBJ_Privilegio | Carica, Crea, Modifica, Elimina |
+| `TPV2(pIdAzione, pIdRuolo)` | OBJ_Privilegio | Soft delete e cancellazione fisica |
+| `TPV3(pIdAzione, pIdRuolo)` | OBJ_Privilegio | Carica per coppia, Cerca |
+| `TAB1(pIdSessione, pIdAbilitazione)` | OBJ_Abilitazione | Carica, Crea, Modifica, Elimina |
+| `TRU1(pIdRuolo)` | OBJ_Ruolo | Carica |
+| `TSE1(username, password, idProfilo)` | OBJ_Sessione | Crea, Carica |
+| `TBW1()` | BuildWhere | FLT LIKE VARCHAR2 |
+| `TBW2()` | BuildWhere | FLT = NUMBER |
+| `TBW3()` | BuildWhere | FLT multipli AND |
+| `TBW4()` | BuildWhere | ABL+FLT stesso valore (deduplicazione) |
+| `TBW5()` | BuildWhere | ABL+FLT valori diversi (IN + avviso) |
+| `TBW6()` | BuildWhere | Sinonimo non riconosciuto (errore 400) |
+| `TBW7()` | BuildWhere | BETWEEN su NUMBER |
+| `TBW8()` | BuildWhere | IS NOT NULL con alias tabella |
 
 ---
 

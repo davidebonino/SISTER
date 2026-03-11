@@ -1,5 +1,27 @@
 ----------------------------------------------------------------------------
---  Sessione
+-- OBJ_Sessione — Gestione dell'autenticazione e del ciclo di vita delle sessioni
+--
+-- SCOPO
+--   Rappresenta una sessione utente attiva. La funzione Crea() esegue
+--   l'autenticazione verificando username, password (hash MD5), profilo e
+--   scadenza password; inserisce il record in TBL_SESSIONI e restituisce
+--   l'oggetto sessione popolato.
+--
+-- CAMPI PRINCIPALI
+--   IdSessione (RAW 16) — identificatore univoco di sessione generato da SYS_GUID()
+--   IdProfilo  (NUMBER) — profilo utente selezionato al login
+--   IdRuolo    (NUMBER) — ruolo applicativo associato al profilo
+--   Stato      (CHAR 1) — 'A' = Attiva, altri valori per stati futuri
+--   Data       (DATE)   — timestamp di creazione della sessione
+--
+-- NOTA SULLA SICUREZZA
+--   La password e confrontata come STANDARD_HASH(pKeyword, 'MD5').
+--   La query di autenticazione verifica anche ATTIVO='S' (utente e profilo)
+--   e DATA_SCADENZA_PASSWORD >= SYSDATE per garantire la validita.
+--   Il metodo Crea esegue COMMIT dopo l'inserimento in TBL_SESSIONI.
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore — eredita il campo Esito e i metodi statici
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Sessione UNDER OBJ_Profilatore (
   IdSessione RAW(16),
@@ -54,14 +76,30 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
   --------------------------------------------------------------------------
 
 
-  -- Autenticazione e creazione sessione
+  -- Crea una nuova sessione autenticata.
+  -- Sequenza di operazioni:
+  --   1. Verifica credenziali: JOIN UTENTI-PROFILI con filtri ATTIVO, hash MD5,
+  --      scadenza password e ID_PROFILO. ROWNUM=1 per sicurezza.
+  --   2. Se le credenziali sono valide (IdRuolo > 0):
+  --      - genera IdSessione con SYS_GUID()
+  --      - inserisce in TBL_SESSIONI
+  --      - esegue COMMIT
+  --      - restituisce la sessione con Esito 201 (Created)
+  --   3. In caso di NO_DATA_FOUND: Esito 401 (credenziali errate)
+  --   4. In caso di altri errori: Esito 500 (errore interno)
+  --
+  -- Parametri:
+  --   pUsername  — login utente (confronto case-insensitive)
+  --   pKeyword   — password in chiaro (viene hashata internamente con MD5)
+  --   pIdProfilo — ID del profilo selezionato dal client al momento del login
   STATIC FUNCTION Crea(pUsername IN VARCHAR2, pKeyword IN VARCHAR2, pIdProfilo IN NUMBER) RETURN OBJ_Sessione IS
     vIdRuolo NUMBER;
     vSessione OBJ_Sessione;
   BEGIN
     vSessione := OBJ_Sessione();
 
-    -- Verifica delle credenziali
+    -- Verifica delle credenziali: JOIN tra UTENTI e PROFILI per recuperare il ruolo
+    -- associato al profilo. Hash MD5 della password confrontato con PASSWORD_0.
     SELECT ID_RUOLO
       INTO vIdRuolo
       FROM UTENTI U

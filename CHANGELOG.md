@@ -6,6 +6,41 @@ e il progetto segue il [Semantic Versioning](https://semver.org/lang/it/).
 
 ---
 
+## [0.5.0] — 2026-03-11
+
+### Aggiunto
+- `DOC/README.md`: indice della documentazione tecnica con link a tutti i file DOC/
+- `DOC/api/overview.md`: panoramica architetturale dell'API SISTER (pattern, principi, stack)
+- `DOC/api/authentication.md`: guida completa al flusso di autenticazione e gestione sessione
+- `DOC/api/endpoints/`: documentazione REST ORDS per ogni gruppo di endpoint
+  - `sessioni.md` — login, logout, verifica sessione
+  - `utenti.md` — CRUD utente
+  - `profili.md` — CRUD profilo e caricamento abilitazioni
+  - `azioni.md` — gestione catalogo azioni RBAC
+  - `privilegi.md` — gestione associazioni ruolo-azione
+  - `abilitazioni.md` — gestione filtri di visibilita profilo
+- `DOC/api/error-codes.md`: tabella codici HTTP e messaggi di errore standard
+- `DOC/guide/getting-started.md`: guida rapida all'integrazione con la libreria
+
+### Modificato
+- `SRC/OBJ/OBJ_ESITO.sql`: aggiornata intestazione con scopo, utilizzo standard e tabella codici HTTP
+- `SRC/OBJ/OBJ_PROFILATORE.sql`: aggiunta intestazione con pattern di utilizzo; documentate
+  le funzioni interne di BuildWhere (FormatVal, Predicato, UnisciValori, HaNuoviValori)
+- `SRC/OBJ/OBJ_SESSIONE.sql`: aggiunta intestazione con note di sicurezza; documentata
+  la sequenza di operazioni di Crea()
+- `SRC/OBJ/OBJ_UTENTE.sql`: aggiunta intestazione con note GDPR, soft delete, audit trail
+- `SRC/OBJ/OBJ_PROFILO.sql`: aggiunta intestazione con descrizione CaricaContestoAbilitazioni
+- `SRC/OBJ/OBJ_RUOLO.sql`: aggiunta intestazione con nota operazioni disponibili
+- `SRC/OBJ/OBJ_AZIONE.sql`: aggiunta intestazione con schema identificazione e overloading
+- `SRC/OBJ/OBJ_PRIVILEGIO.sql`: aggiunta intestazione con descrizione flusso RBAC
+- `SRC/OBJ/OBJ_ABILITAZIONE.sql`: aggiunta intestazione con formato in CTX_APP_ABL
+- `SRC/PKG/PKG_APP.sql`: aggiunta intestazione package; documentate Inizializza e VerificaAccesso
+  con sequenza di operazioni e flusso di controllo fail-fast
+- `SRC/TEST_APP.sql`: aggiunta intestazione con prerequisiti, elenco procedure di test
+  e istruzioni per l'esecuzione selettiva
+
+---
+
 ## [0.4.0] — 2026-03-03
 
 ### Aggiunto

@@ -1,5 +1,31 @@
 ----------------------------------------------------------------------------
---  Utente
+-- OBJ_Utente — Entita utente con CRUD completo e soft delete
+--
+-- SCOPO
+--   Rappresenta un utente del sistema con tutti i suoi dati anagrafici,
+--   credenziali di accesso e campi di audit. Implementa il pattern CRUD
+--   standard con verifica accesso RBAC su ogni operazione di scrittura.
+--
+-- PATTERN SOFT DELETE
+--   Elimina(pFisica=FALSE) → imposta Attivo='N' (record mantenuto)
+--   Elimina(pFisica=TRUE)  → cancellazione fisica da UTENTI
+--
+-- CAMPI SENSIBILI (GDPR)
+--   CodiceFiscale, Telefono, Cellulare, Email — dati personali identificativi
+--   Password0/1/2 — hash MD5 della password corrente e delle ultime 2
+--
+-- AUDIT TRAIL
+--   DataIns/UtenteIns — creazione record
+--   DataAgg/UtenteAgg — ultima modifica
+--
+-- METODO Carica
+--   Richiede MioIdRuolo() IS NOT NULL (sessione inizializzata).
+--   Usato anche da PKG_APP.Inizializza: in quel contesto non viene chiamato
+--   VerificaAccesso perche la sessione non e ancora completamente popolata.
+--
+-- DIPENDENZE
+--   UNDER OBJ_Profilatore — eredita Esito, BuildWhere e funzioni statiche
+--   AZIONI/PRIVILEGI: INSERIMENTO/MODIFICA/ELIMINAZIONE su 'UTENTE'
 ----------------------------------------------------------------------------
 CREATE OR REPLACE TYPE OBJ_Utente UNDER OBJ_Profilatore (
   IdUtente             NUMBER,
