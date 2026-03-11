@@ -13,6 +13,7 @@ CREATE OR REPLACE TYPE OBJ_Azione UNDER OBJ_Profilatore (
   DataAgg     DATE,
   UtenteAgg   NUMBER,
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   STATIC FUNCTION Carica(pIdAzione NUMBER) RETURN OBJ_Azione,
   STATIC FUNCTION Carica(pTipo IN VARCHAR2, pOggetto IN VARCHAR2, pAmbito IN VARCHAR2) RETURN OBJ_Azione,
   STATIC FUNCTION Cerca(pTipo IN VARCHAR2, pOggetto IN VARCHAR2, pAmbito IN VARCHAR2) RETURN NUMBER,
@@ -51,6 +52,21 @@ CREATE OR REPLACE TYPE BODY OBJ_Azione AS
   BEGIN
     RETURN 'AZIONE';
   END Info;
+  --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_AZIONE'   THEN 'ID_AZIONE|N'
+      WHEN 'TIPO'        THEN 'TIPO|V'
+      WHEN 'NOME'        THEN 'NOME|V'
+      WHEN 'DESCRIZIONE' THEN 'DESCRIZIONE|V'
+      WHEN 'OGGETTO'     THEN 'OGGETTO|V'
+      WHEN 'AMBITO'      THEN 'AMBITO|V'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
   --------------------------------------------------------------------------
 
 

@@ -12,6 +12,7 @@ CREATE OR REPLACE TYPE OBJ_Profilo UNDER OBJ_Profilatore (
   UtenteAgg     NUMBER,
   Attivo        VARCHAR2(1),
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   STATIC FUNCTION Carica(pIdProfilo IN NUMBER) RETURN OBJ_Profilo,
   STATIC FUNCTION CaricaContestoAbilitazioni(pIdProfilo IN NUMBER) RETURN NUMBER,
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN,
@@ -46,6 +47,20 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
     BEGIN
       RETURN 'PROFILO';
     END Info;
+  --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_PROFILO' THEN 'ID_PROFILO|N'
+      WHEN 'ID_UTENTE'  THEN 'ID_UTENTE|N'
+      WHEN 'ID_RUOLO'   THEN 'ID_RUOLO|N'
+      WHEN 'NOME'       THEN 'NOME|V'
+      WHEN 'ATTIVO'     THEN 'ATTIVO|V'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
   --------------------------------------------------------------------------
 
 
@@ -251,25 +266,20 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilo AS
     vIdAbilitazioni NUMBER;
     vAbilitazione OBJ_Abilitazione;
 
+    -- Raggruppa per CHIAVE+OPERATORE: più valori con stesso operatore → semicolon-separated
+    -- Formato nel contesto: VALORI|OPERATORE  (es. "210;211|=")
     CURSOR cAbilitazioni IS
-    SELECT ID_CHIAVE,
-           ID_PROFILO,
-           TIPO,
-           CHIAVE,
-           VALORE,
-           DATAINS,
-           UTENTEINS,
-           DATAAGG,
-           UTENTEAGG,
-           OPERATORE
+    SELECT CHIAVE,
+           OPERATORE,
+           LISTAGG(VALORE, ';') WITHIN GROUP (ORDER BY VALORE) AS VALORI
       FROM ABILITAZIONI
-     WHERE ID_PROFILO = pIdProfilo;
+     WHERE ID_PROFILO = pIdProfilo
+     GROUP BY CHIAVE, OPERATORE;
 	  BEGIN
 	    PKG_APP.PulisciContesto('CTX_APP_ABL');
 
-	    -- Ciclo sulle abilitazioni per caricare il contesto
 	    FOR rec_abil IN cAbilitazioni LOOP
-	      PKG_APP.AggiungiContesto('CTX_APP_ABL', rec_abil.CHIAVE, rec_abil.VALORE);
+	      PKG_APP.AggiungiContesto('CTX_APP_ABL', rec_abil.CHIAVE, rec_abil.VALORI || '|' || rec_abil.OPERATORE);
 	    END LOOP;
 
 	    RETURN vIdAbilitazioni;

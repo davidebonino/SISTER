@@ -25,6 +25,7 @@ CREATE OR REPLACE TYPE OBJ_Utente UNDER OBJ_Profilatore (
   IdProfessione        NUMBER(9),
   Incarico             VARCHAR2(50),
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   STATIC FUNCTION Carica(pIdUtente NUMBER) RETURN OBJ_Utente,
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN,
   MEMBER PROCEDURE Crea,
@@ -73,6 +74,26 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
       RETURN 'UTENTE';
     END Info;
     --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_UTENTE'      THEN 'ID_UTENTE|N'
+      WHEN 'LOGIN'          THEN 'LOGIN|V'
+      WHEN 'COGNOME'        THEN 'COGNOME|V'
+      WHEN 'NOME'           THEN 'NOME|V'
+      WHEN 'CODICE_FISCALE' THEN 'CODICE_FISCALE|V'
+      WHEN 'EMAIL'          THEN 'EMAIL|V'
+      WHEN 'TELEFONO'       THEN 'TELEFONO|V'
+      WHEN 'CELLULARE'      THEN 'CELLULARE|V'
+      WHEN 'ATTIVO'         THEN 'ATTIVO|V'
+      WHEN 'ID_PROFESSIONE' THEN 'ID_PROFESSIONE|N'
+      WHEN 'INCARICO'       THEN 'INCARICO|V'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
+  --------------------------------------------------------------------------
 
 
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN IS

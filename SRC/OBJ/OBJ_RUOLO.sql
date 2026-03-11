@@ -7,6 +7,7 @@ CREATE OR REPLACE TYPE OBJ_Ruolo UNDER OBJ_Profilatore (
   DataInizioValidita  DATE,
   DataFineValidita    DATE,
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   STATIC FUNCTION Carica(pIdRuolo IN NUMBER) RETURN OBJ_Ruolo,
   CONSTRUCTOR FUNCTION OBJ_Ruolo RETURN SELF AS RESULT
 
@@ -33,6 +34,19 @@ CREATE OR REPLACE TYPE BODY OBJ_Ruolo AS
   BEGIN
     RETURN 'RUOLO';
   END Info;
+  --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_RUOLO'             THEN 'ID_RUOLO|N'
+      WHEN 'DESCRIZIONE'          THEN 'DESCRIZIONE|V'
+      WHEN 'DATA_INIZIO_VALIDITA' THEN 'DATA_INIZIO_VALIDITA|D'
+      WHEN 'DATA_FINE_VALIDITA'   THEN 'DATA_FINE_VALIDITA|D'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
   --------------------------------------------------------------------------
 
 

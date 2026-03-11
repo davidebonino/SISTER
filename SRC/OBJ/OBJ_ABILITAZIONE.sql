@@ -13,6 +13,7 @@ CREATE OR REPLACE TYPE OBJ_Abilitazione UNDER OBJ_Profilatore (
   UtenteAgg NUMBER,
   Operatore VARCHAR2(3),
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   --STATIC FUNCTION Crea(pIdAccesso VARCHAR2) RETURN OBJ_Abilitazione,
   STATIC FUNCTION Carica(pIdSessione VARCHAR2, pIdAbilitazione NUMBER) RETURN OBJ_Abilitazione,
   MEMBER FUNCTION ControlliLogici RETURN BOOLEAN,
@@ -49,6 +50,21 @@ CREATE OR REPLACE TYPE BODY OBJ_Abilitazione AS
   BEGIN
     RETURN 'ABILITAZIONE';
   END Info;
+  --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_CHIAVE'  THEN 'ID_CHIAVE|N'
+      WHEN 'ID_PROFILO' THEN 'ID_PROFILO|N'
+      WHEN 'TIPO'       THEN 'TIPO|N'
+      WHEN 'CHIAVE'     THEN 'CHIAVE|V'
+      WHEN 'VALORE'     THEN 'VALORE|V'
+      WHEN 'OPERATORE'  THEN 'OPERATORE|V'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
   --------------------------------------------------------------------------
 
 

@@ -8,6 +8,7 @@ CREATE OR REPLACE TYPE OBJ_Sessione UNDER OBJ_Profilatore (
   Stato      CHAR(1),
   Data       DATE,
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   STATIC FUNCTION Crea(pUsername IN VARCHAR2, pKeyword IN VARCHAR2, pIdProfilo IN NUMBER) RETURN OBJ_Sessione,
   STATIC FUNCTION Carica(pIdSessione VARCHAR2) RETURN OBJ_Sessione,
   CONSTRUCTOR FUNCTION OBJ_Sessione RETURN SELF AS RESULT
@@ -36,6 +37,20 @@ CREATE OR REPLACE TYPE BODY OBJ_Sessione AS
   BEGIN
     RETURN 'SESSIONE';
   END Info;
+  --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_SESSIONE' THEN 'ID_SESSIONE|V'
+      WHEN 'ID_PROFILO'  THEN 'ID_PROFILO|N'
+      WHEN 'ID_RUOLO'    THEN 'ID_RUOLO|N'
+      WHEN 'STATO'       THEN 'STATO|V'
+      WHEN 'DATA'        THEN 'DATA|D'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
   --------------------------------------------------------------------------
 
 

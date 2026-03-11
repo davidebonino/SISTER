@@ -11,6 +11,7 @@ CREATE OR REPLACE TYPE OBJ_Privilegio UNDER OBJ_Profilatore (
   UtenteAgg     NUMBER,
   Attivo        VARCHAR2(1),
   OVERRIDING MEMBER FUNCTION Info RETURN VARCHAR2,
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2,
   STATIC FUNCTION Carica(pIdPrivilegio IN NUMBER) RETURN OBJ_Privilegio,
   STATIC FUNCTION Carica(pIdAzione IN NUMBER, pIdRuolo IN NUMBER) RETURN OBJ_Privilegio,
   STATIC FUNCTION Cerca(pIdAzione IN NUMBER, pIdRuolo IN NUMBER) RETURN NUMBER,
@@ -45,6 +46,19 @@ CREATE OR REPLACE TYPE BODY OBJ_Privilegio AS
 	  BEGIN
 	    RETURN 'PRIVILEGIO';
 	  END Info;
+  --------------------------------------------------------------------------
+
+
+  OVERRIDING MEMBER FUNCTION RisolviSinonimo(pSinonimo IN VARCHAR2) RETURN VARCHAR2 IS
+  BEGIN
+    RETURN CASE UPPER(pSinonimo)
+      WHEN 'ID_PRIVILEGIO' THEN 'ID_PRIVILEGIO|N'
+      WHEN 'ID_AZIONE'     THEN 'ID_AZIONE|N'
+      WHEN 'ID_RUOLO'      THEN 'ID_RUOLO|N'
+      WHEN 'ATTIVO'        THEN 'ATTIVO|V'
+      ELSE NULL
+    END;
+  END RisolviSinonimo;
   --------------------------------------------------------------------------
 
 
