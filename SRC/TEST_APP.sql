@@ -390,7 +390,7 @@ DECLARE
 	  BEGIN
 	    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBW1 - BUILDWHERE: FLT LIKE VARCHAR2');
 	    PKG_APP.PulisciContesto('CTX_APP_FLT');
-	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE');
+	    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'BO%|LIKE');
 
 	    vUtente := OBJ_Utente();
 	    vUtente.BuildWhere(NULL, vWhere);
@@ -403,7 +403,7 @@ DECLARE
 	        DBMS_OUTPUT.PUT_LINE('TBW1 KO: predicato atteso assente');
 	      END IF;
 	    ELSE
-	      DBMS_OUTPUT.PUT_LINE('TBW1 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio);
+	      DBMS_OUTPUT.PUT_LINE('TBW1 KO - ' || vUtente.Esito.StatusCode || ': ' || vUtente.Esito.Messaggio || ' - ' || vUtente.Esito.Errori);
 	    END IF;
 	    PKG_APP.PulisciContesto('CTX_APP_FLT');
 	  END TBW1;
@@ -675,13 +675,13 @@ BEGIN
     --TSE1('davide.bonino', 'Peter_Pan', 17460);
 
     TBW1();
-    TBW2();
-    TBW3();
-    TBW4();
-    TBW5();
-    TBW6();
-    TBW7();
-    TBW8();
+    --TBW2();
+    --TBW3();
+    --TBW4();
+    --TBW5();
+    --TBW6();
+    --TBW7();
+    --TBW8();
 
     COMMIT;
 

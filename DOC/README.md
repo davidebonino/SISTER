@@ -2,7 +2,7 @@
 
 **Progetto**: SISTER — Sistema Informativo Sanitario Territoriale e Regionale
 **Tecnologia**: Oracle 19c / PL/SQL Object-Oriented / ORDS
-**Versione documentazione**: 0.5.0 — 2026-03-11
+**Versione documentazione**: 0.6.0 — 2026-03-12
 
 ---
 
@@ -15,6 +15,12 @@
 | [api/overview.md](api/overview.md) | Panoramica architetturale dell'API SISTER |
 | [api/authentication.md](api/authentication.md) | Flusso di autenticazione e gestione sessione |
 | [api/error-codes.md](api/error-codes.md) | Codici HTTP e messaggi di errore standard |
+
+### Documentazione Tipi Oracle (OBJ_*)
+
+| File | Tipo | Descrizione |
+|------|------|-------------|
+| [api/obj-profilatore.md](api/obj-profilatore.md) | `OBJ_Profilatore` | Superclasse base: campo Esito, funzioni di sessione, BuildWhere |
 
 ### Endpoint REST (ORDS)
 
