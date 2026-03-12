@@ -334,6 +334,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Azione AS
 
 
   -- Cerca l'Id dell'oggetto Azione
+  -- !!! DA VALUTARE IL NOME DELLA FUNZIONE
   STATIC FUNCTION Cerca(pTipo IN VARCHAR2, pOggetto IN VARCHAR2, pAmbito IN VARCHAR2) RETURN NUMBER IS
     vAzione OBJ_Azione;
   BEGIN

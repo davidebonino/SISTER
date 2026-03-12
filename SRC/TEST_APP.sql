@@ -717,7 +717,9 @@ DECLARE
     DBMS_OUTPUT.PUT_LINE('ESECUZIONE TCER1 - CERCA UTENTI COGNOME SA%');
 
     PKG_APP.PulisciContesto('CTX_APP_FLT');
-    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'SA%|LIKE');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'SAM%|LIKE');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'NOME', '%ON%|LIKE');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'PRESIDIO', '12345');
 
     vUtente := OBJ_Utente();
     vUtente.Cerca(vCursor);
@@ -728,7 +730,7 @@ DECLARE
         RPAD('LOGIN',  25) || ' ' ||
         RPAD('COGNOME', 20) || ' ' ||
         RPAD('NOME',   15) || ' ' ||
-        RPAD('EMAIL',  30) || ' ' ||
+        RPAD('EMAIL',  50) || ' ' ||
         'ATT'
       );
       DBMS_OUTPUT.PUT_LINE(RPAD('-', 103, '-'));
@@ -742,7 +744,7 @@ DECLARE
           RPAD(NVL(vLogin,   ''), 25) || ' ' ||
           RPAD(NVL(vCognome, ''), 20) || ' ' ||
           RPAD(NVL(vNome,    ''), 15) || ' ' ||
-          RPAD(NVL(vEmail,   ''), 50) || ' ' ||
+          RPAD(NVL(vEmail,   ''), 30) || ' ' ||
           NVL(vAttivo, '')
         );
       END LOOP;
@@ -760,7 +762,9 @@ DECLARE
         ': ' || vUtente.Esito.Messaggio || ' - ' || vUtente.Esito.DebugInfo);
     END IF;
 
-    PKG_APP.PulisciContesto('CTX_APP_FLT');
+    DBMS_OUTPUT.PUT_LINE('ABL: ' || PKG_APP.VisualizzaContesto('CTX_APP_ABL'));
+    DBMS_OUTPUT.PUT_LINE('FLT: ' || PKG_APP.VisualizzaContesto('CTX_APP_FLT'));
+    --PKG_APP.PulisciContesto('CTX_APP_FLT');
   END TCER1;
 
 
@@ -843,7 +847,7 @@ BEGIN
     -- ESECUZIONE TEST SESSIONE
     --TSE1('davide.bonino', 'Peter_Pan', 17460);
 
-    TBW1();
+    --TBW1();
     --TBW2();
     --TBW3();
     --TBW4();

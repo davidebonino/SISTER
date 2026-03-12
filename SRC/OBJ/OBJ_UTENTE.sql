@@ -419,7 +419,7 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
     IF vWhere IS NOT NULL THEN
       vSql := vSql || ' WHERE ' || vWhere;
     END IF;
-    vSql := vSql || ' ORDER BY U.Cognome, U.Nome';
+    --vSql := vSql || ' ORDER BY U.Cognome, U.Nome';
 
     OPEN pCursor FOR vSql;
     SELF.Esito := OBJ_Esito.Imposta(200, 'Ricerca completata', NULL, NULL);

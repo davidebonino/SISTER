@@ -2,7 +2,7 @@
 
 **Progetto**: SISTER — Sistema Informativo Sanitario Territoriale e Regionale
 **Tecnologia**: Oracle 19c / PL/SQL Object-Oriented / ORDS
-**Versione documentazione**: 0.6.2 — 2026-03-12
+**Versione documentazione**: 0.8.0 — 2026-03-12
 
 ---
 
@@ -15,6 +15,7 @@
 | [api/overview.md](api/overview.md) | Panoramica architetturale dell'API SISTER |
 | [api/authentication.md](api/authentication.md) | Flusso di autenticazione e gestione sessione |
 | [api/error-codes.md](api/error-codes.md) | Codici HTTP e messaggi di errore standard |
+| [api/pkg-app.md](api/pkg-app.md) | `PKG_APP` — package principale: Inizializza, VerificaAccesso, gestione contesti, parametri |
 
 ### Documentazione Tipi Oracle (OBJ_*)
 
@@ -22,6 +23,7 @@
 |------|------|-------------|
 | [api/obj-profilatore.md](api/obj-profilatore.md) | `OBJ_Profilatore` | Superclasse base: campo Esito, funzioni di sessione, BuildWhere |
 | [api/obj-utente.md](api/obj-utente.md) | `OBJ_Utente` | CRUD completo, soft delete, ricerca profilata con `Cerca` |
+| [api/obj-anagrafe.md](api/obj-anagrafe.md) | `OBJ_Anagrafe` | CRUD assistiti SSR, cancellazione fisica, 12 sinonimi BuildWhere, minimizzazione GDPR |
 
 ### Endpoint REST (ORDS)
 
@@ -84,13 +86,14 @@ PKG_APP.VerificaAccesso()    -- RBAC centralizzato (usato da tutti i CRUD)
          |
          v
 OBJ_Profilatore (base)
-  ├── OBJ_Sessione    → TBL_SESSIONI
-  ├── OBJ_Utente      → UTENTI
-  ├── OBJ_Profilo     → PROFILI
-  ├── OBJ_Ruolo       → TAB_RUOLI
-  ├── OBJ_Azione      → TBL_AZIONI
-  ├── OBJ_Privilegio  → TBL_PRIVILEGI
-  └── OBJ_Abilitazione → ABILITAZIONI
+  ├── OBJ_Sessione     → TBL_SESSIONI
+  ├── OBJ_Utente       → UTENTI
+  ├── OBJ_Profilo      → PROFILI
+  ├── OBJ_Ruolo        → TAB_RUOLI
+  ├── OBJ_Azione       → TBL_AZIONI
+  ├── OBJ_Privilegio   → TBL_PRIVILEGI
+  ├── OBJ_Abilitazione → ABILITAZIONI
+  └── OBJ_Anagrafe     → ANAGRAFE  (modulo ANA)
 ```
 
 ---
