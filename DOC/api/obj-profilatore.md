@@ -409,6 +409,20 @@ END Cerca;
 
 ---
 
+## Test e Benchmark
+
+Gli script di test funzionali e di performance per `BuildWhere` si trovano in
+`SRC/TEST_APP.sql`. Le procedure rilevanti sono:
+
+| Procedura | Descrizione |
+|-----------|-------------|
+| `TBW1`..`TBW8` | Test funzionali: coprono tutti gli operatori, il merging ABL+FLT, la deduplicazione, gli avvisi e la gestione degli errori (sinonimo sconosciuto → 400). |
+| `TBWP1(pIterazioni)` | Benchmark di performance: 3 scenari (1 FLT baseline, 5 FLT eterogenei, 5 ABL+5 FLT con overlap e merging). Misura in centesimi di secondo. Default: 100 iterazioni per scenario. |
+
+Vedere la tabella completa in [README — Script di Test](../README.md#script-di-test-srctestappsql).
+
+---
+
 ## Riferimenti
 
 - [Panoramica API](overview.md)

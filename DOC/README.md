@@ -2,7 +2,7 @@
 
 **Progetto**: SISTER — Sistema Informativo Sanitario Territoriale e Regionale
 **Tecnologia**: Oracle 19c / PL/SQL Object-Oriented / ORDS
-**Versione documentazione**: 0.6.0 — 2026-03-12
+**Versione documentazione**: 0.6.2 — 2026-03-12
 
 ---
 
@@ -21,6 +21,7 @@
 | File | Tipo | Descrizione |
 |------|------|-------------|
 | [api/obj-profilatore.md](api/obj-profilatore.md) | `OBJ_Profilatore` | Superclasse base: campo Esito, funzioni di sessione, BuildWhere |
+| [api/obj-utente.md](api/obj-utente.md) | `OBJ_Utente` | CRUD completo, soft delete, ricerca profilata con `Cerca` |
 
 ### Endpoint REST (ORDS)
 
@@ -38,6 +39,30 @@
 | File | Descrizione |
 |------|-------------|
 | [guide/getting-started.md](guide/getting-started.md) | Guida rapida all'integrazione |
+
+### Script di Test (`SRC/TEST_APP.sql`)
+
+| Procedura | Entità / Ambito | Descrizione |
+|-----------|-----------------|-------------|
+| `TAZ1(pIdAzione)` | `OBJ_Azione` | CRUD completo: carica, crea, modifica, elimina |
+| `TUT1(pIdUtente)` | `OBJ_Utente` | CRUD completo con soft delete |
+| `TPR1(pIdProfilo)` | `OBJ_Profilo` | CRUD completo con soft delete |
+| `TPV1(pIdPrivilegio)` | `OBJ_Privilegio` | CRUD singolo su un privilegio esistente |
+| `TPV2(pIdAzione, pIdRuolo)` | `OBJ_Privilegio` | Verifica soft delete (default) e cancellazione fisica (`TRUE`) |
+| `TPV3(pIdAzione, pIdRuolo)` | `OBJ_Privilegio` | Verifica `Carica(IdAzione, IdRuolo)` e `Cerca` con coppia valida e inesistente |
+| `TAB1(pIdSessione, pIdAbilitazione)` | `OBJ_Abilitazione` | CRUD completo con delete fisico |
+| `TRU1(pIdRuolo)` | `OBJ_Ruolo` | Lettura e stampa dei campi del ruolo |
+| `TSE1(username, password, idProfilo)` | `OBJ_Sessione` | Creazione sessione e ricaricamento tramite GUID |
+| `TBW1` | `BuildWhere` | FLT singolo: LIKE su VARCHAR2 |
+| `TBW2` | `BuildWhere` | FLT singolo: `=` su NUMBER |
+| `TBW3` | `BuildWhere` | FLT multipli: combinazione AND |
+| `TBW4` | `BuildWhere` | ABL + FLT stesso campo e stesso valore: deduplicazione (nessun IN) |
+| `TBW5` | `BuildWhere` | ABL + FLT stesso campo con valori diversi: IN clause + avviso di allargamento visibilità |
+| `TBW6` | `BuildWhere` | Sinonimo non mappato: errore 400 e `pWhere = NULL` |
+| `TBW7` | `BuildWhere` | Operatore `BETWEEN` su NUMBER |
+| `TBW8` | `BuildWhere` | Operatore `NOTNULL` (IS NOT NULL) con alias tabella |
+| `TBWP1(pIterazioni)` | `BuildWhere` — performance | Benchmark: 3 scenari (1 FLT, 5 FLT eterogenei, 5 ABL+5 FLT con overlap); misura in centesimi di secondo tramite `DBMS_UTILITY.GET_TIME`. Default: 100 iterazioni per scenario. |
+| `TCER1` | `OBJ_Utente.Cerca` | Ricerca utenti con `COGNOME LIKE 'SA%'`: imposta `CTX_APP_FLT`, invoca `Cerca`, visualizza i risultati in forma tabellare con contatore. Attiva per default. |
 
 ### Documentazione Esistente
 

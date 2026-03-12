@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
--- OBJ_Profilatore — Tipo Oracle base per la gerarchia degli oggetti SISTER
+-- OBJ_Profilatore - Tipo Oracle base per la gerarchia degli oggetti SISTER
 --
 -- SCOPO
 --   Superclasse NOT INSTANTIABLE NOT FINAL da cui ereditano tutti i tipi
@@ -9,19 +9,19 @@
 --   il metodo di costruzione dinamica delle clausole WHERE (BuildWhere).
 --
 -- DIPENDENZE
---   OBJ_Esito — usato come tipo del campo Esito e come valore di ritorno
+--   OBJ_Esito - usato come tipo del campo Esito e come valore di ritorno
 --               degli helper di costruzione dei predicati WHERE.
---   CTX_APP_IDS — Application Context contenente ID_SESSIONE, ID_UTENTE,
+--   CTX_APP_IDS - Application Context contenente ID_SESSIONE, ID_UTENTE,
 --                 ID_PROFILO, ID_RUOLO della sessione corrente.
---   CTX_APP_ABL — Application Context contenente i filtri di autorizzazione
+--   CTX_APP_ABL - Application Context contenente i filtri di autorizzazione
 --                 del profilo (es. ATTIVO=S|=).
---   CTX_APP_FLT — Application Context contenente i filtri di ricerca
+--   CTX_APP_FLT - Application Context contenente i filtri di ricerca
 --                 aggiuntivi impostati a runtime dal chiamante.
---   SESSION_CONTEXT — vista Oracle usata da BuildWhere per iterare
+--   SESSION_CONTEXT - vista Oracle usata da BuildWhere per iterare
 --                     sugli attributi dei due contesti ABL e FLT.
 --
 -- METODO ASTRATTO
---   RisolviSinonimo(pSinonimo) — MUST OVERRIDE in ogni sottotipo concreto:
+--   RisolviSinonimo(pSinonimo) - MUST OVERRIDE in ogni sottotipo concreto:
 --   traduce un nome logico di attributo (es. 'COGNOME') nella coppia
 --   COLONNA|TIPO usata da BuildWhere (es. 'COGNOME|V').
 --   Restituisce NULL se il sinonimo non è mappato per questo oggetto
@@ -35,7 +35,7 @@
 --            'B%|LIKE' →  campo LIKE 'B%'
 --
 -- FORMATO RISPOSTA RisolviSinonimo
---   COLONNA|TIPO  — dove TIPO è: 'V' (VARCHAR), 'N' (NUMBER), 'D' (DATE)
+--   COLONNA|TIPO  - dove TIPO è: 'V' (VARCHAR), 'N' (NUMBER), 'D' (DATE)
 --   Esempio: 'COGNOME|V', 'ID_UTENTE|N', 'DATA_INS|D'
 --
 -- PATTERN DI UTILIZZO
@@ -80,7 +80,7 @@ CREATE OR REPLACE TYPE OBJ_Profilatore AS OBJECT (
   -- Restituisce NULL se la sessione non è attiva.
   STATIC FUNCTION MioIdUtente RETURN NUMBER,
 
-  -- RisolviSinonimo(pSinonimo): METODO ASTRATTO — da implementare in ogni sottotipo.
+  -- RisolviSinonimo(pSinonimo): METODO ASTRATTO - da implementare in ogni sottotipo.
   -- Traduce un nome logico di attributo nel formato 'COLONNA|TIPO' per BuildWhere.
   -- Restituisce NULL se l'attributo non appartiene a questo oggetto (non bloccante).
   -- Esempio implementazione in OBJ_Utente:
@@ -92,9 +92,9 @@ CREATE OR REPLACE TYPE OBJ_Profilatore AS OBJECT (
   -- BuildWhere(pAlias, pWhere): costruisce la clausola WHERE dinamica.
   --
   -- Parametri:
-  --   pAlias (IN)  — alias della tabella per qualificare le colonne
+  --   pAlias (IN)  - alias della tabella per qualificare le colonne
   --                  (es. 'U' → 'U.COGNOME'); NULL = nessuna qualifica.
-  --   pWhere (OUT) — clausola WHERE senza la parola chiave WHERE,
+  --   pWhere (OUT) - clausola WHERE senza la parola chiave WHERE,
   --                  pronta per concatenazione diretta alla query SQL.
   --                  Stringa vuota se nessun filtro è applicabile.
   --
@@ -107,9 +107,9 @@ CREATE OR REPLACE TYPE OBJ_Profilatore AS OBJECT (
   --   4. Se gli operatori sono diversi: entrambe le condizioni in AND.
   --
   -- SELF.Esito dopo la chiamata:
-  --   200            — OK, clausola costruita senza avvisi
-  --   200+DebugInfo  — OK con avvisi (sinonimi ignorati e/o FLT allarga ABL)
-  --   500            — errore interno (es. valore non valido per tipo N o D)
+  --   200            - OK, clausola costruita senza avvisi
+  --   200+DebugInfo  - OK con avvisi (sinonimi ignorati e/o FLT allarga ABL)
+  --   500            - errore interno (es. valore non valido per tipo N o D)
   MEMBER PROCEDURE BuildWhere(pAlias IN VARCHAR2 DEFAULT NULL, pWhere OUT VARCHAR2)
 
 ) NOT INSTANTIABLE NOT FINAL;
@@ -198,19 +198,19 @@ CREATE OR REPLACE TYPE BODY OBJ_Profilatore AS
     vIgnorati  VARCHAR2(4000) := '';    -- sinonimi non mappati da RisolviSinonimo (ignorati, non bloccanti)
 
     ---------------------------------------------------------------------------
-    -- FUNZIONI INTERNE (nested) — visibili solo all'interno di BuildWhere
+    -- FUNZIONI INTERNE (nested) - visibili solo all'interno di BuildWhere
     ---------------------------------------------------------------------------
 
     -- FormatVal: formatta un singolo valore scalare per inclusione sicura in SQL dinamico.
     --
     -- Protezione SQL injection:
-    --   'N' (NUMBER)  — tenta TO_NUMBER(TRIM(pVal)); se non numericamente valido
+    --   'N' (NUMBER)  - tenta TO_NUMBER(TRIM(pVal)); se non numericamente valido
     --                   solleva eccezione VALUE_ERROR → intercettata da BuildWhere → esito 500.
     --                   Restituisce il testo del numero senza apici.
-    --   'D' (DATE)    — tenta TO_DATE(TRIM(pVal), 'YYYY-MM-DD'); se formato non valido
+    --   'D' (DATE)    - tenta TO_DATE(TRIM(pVal), 'YYYY-MM-DD'); se formato non valido
     --                   solleva eccezione → intercettata da BuildWhere → esito 500.
     --                   Restituisce la stringa TO_DATE('YYYY-MM-DD','YYYY-MM-DD').
-    --   'V' (VARCHAR) — escapa gli apici singoli raddoppiandoli (standard SQL);
+    --   'V' (VARCHAR) - escapa gli apici singoli raddoppiandoli (standard SQL);
     --                   avvolge il risultato in apici singoli.
     --                   Esempio: FormatVal('D''Amico', 'V') → '''D''''Amico'''
     FUNCTION FormatVal(pVal IN VARCHAR2, pTipo IN VARCHAR2) RETURN VARCHAR2 IS

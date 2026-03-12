@@ -57,6 +57,7 @@ CREATE OR REPLACE TYPE OBJ_Utente UNDER OBJ_Profilatore (
   MEMBER PROCEDURE Crea,
   MEMBER PROCEDURE Modifica,
   MEMBER PROCEDURE Elimina(pFisica BOOLEAN DEFAULT FALSE),
+  MEMBER PROCEDURE Cerca(pCursor OUT SYS_REFCURSOR),
   CONSTRUCTOR FUNCTION OBJ_Utente RETURN SELF AS RESULT
   );
 
@@ -379,6 +380,56 @@ CREATE OR REPLACE TYPE BODY OBJ_Utente AS
           RETURN vUtente;
     END Carica;
     --------------------------------------------------------------------------
+
+
+  -- Esegue una ricerca sugli utenti applicando i filtri di autorizzazione
+  -- (CTX_APP_ABL) e di ricerca (CTX_APP_FLT) tramite BuildWhere.
+  -- Il chiamante imposta i filtri su CTX_APP_FLT prima di invocare Cerca,
+  -- poi itera sul cursore con FETCH e lo chiude con CLOSE al termine.
+  --
+  -- Colonne restituite: Id_Utente, Login, Cognome, Nome, Email, Attivo.
+  -- Ordine: Cognome ASC, Nome ASC.
+  -- Campi esclusi: Password_0/1/2 (hash MD5) e campi di audit.
+  --
+  -- SELF.Esito dopo la chiamata:
+  --   200 — cursore aperto, iterare con FETCH ... CLOSE
+  --   401 — sessione non inizializzata (MioIdRuolo IS NULL)
+  --   400 — errore nei filtri (BuildWhere fallita)
+  --   500 — errore interno
+  MEMBER PROCEDURE Cerca(pCursor OUT SYS_REFCURSOR) IS
+    vWhere VARCHAR2(32767);
+    vSql   VARCHAR2(32767);
+  BEGIN
+
+    IF OBJ_Utente.MioIdRuolo() IS NULL THEN
+      SELF.Esito := OBJ_Esito.Imposta(401, 'Sessione non attiva', 'MioIdRuolo IS NULL', NULL);
+      pCursor := NULL;
+      RETURN;
+    END IF;
+
+    SELF.BuildWhere('U', vWhere);
+    IF SELF.Esito.StatusCode <> 200 THEN
+      pCursor := NULL;
+      RETURN;
+    END IF;
+
+    vSql :=
+      'SELECT U.Id_Utente, U.Login, U.Cognome, U.Nome, U.Email, U.Attivo' ||
+      ' FROM UTENTI U';
+    IF vWhere IS NOT NULL THEN
+      vSql := vSql || ' WHERE ' || vWhere;
+    END IF;
+    vSql := vSql || ' ORDER BY U.Cognome, U.Nome';
+
+    OPEN pCursor FOR vSql;
+    SELF.Esito := OBJ_Esito.Imposta(200, 'Ricerca completata', NULL, NULL);
+
+  EXCEPTION
+    WHEN OTHERS THEN
+      SELF.Esito := OBJ_Esito.Imposta(500, 'Cerca non riuscita per errore interno', SQLERRM, SQLERRM);
+      pCursor := NULL;
+  END Cerca;
+  --------------------------------------------------------------------------
 
 END;
 ----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
--- TEST_APP.sql — Script di test integrato per la libreria SISTER
+-- TEST_APP.sql - Script di test integrato per la libreria SISTER
 --
 -- SCOPO
 --   Verifica funzionale di tutti i tipi Oracle e del package PKG_APP.
@@ -12,16 +12,18 @@
 --   - Azioni e privilegi configurati in TBL_AZIONI e TBL_PRIVILEGI
 --
 -- PROCEDURE DI TEST
---   TAZ1(pIdAzione)      — test CRUD completo su OBJ_Azione
---   TUT1(pIdUtente)      — test CRUD completo su OBJ_Utente
---   TPR1(pIdProfilo)     — test CRUD completo su OBJ_Profilo
---   TPV1(pIdPrivilegio)  — test CRUD singolo su OBJ_Privilegio
---   TPV2(pIdAzione, pIdRuolo) — verifica soft delete e cancellazione fisica OBJ_Privilegio
---   TPV3(pIdAzione, pIdRuolo) — verifica Carica per coppia e Cerca
---   TAB1(pIdSessione, pIdAbilitazione) — test CRUD su OBJ_Abilitazione
---   TRU1(pIdRuolo)       — test lettura OBJ_Ruolo
---   TSE1(username, password, idProfilo) — test creazione e caricamento sessione
---   TBW1..TBW8           — test metodo BuildWhere con vari scenari
+--   TAZ1(pIdAzione)      - test CRUD completo su OBJ_Azione
+--   TUT1(pIdUtente)      - test CRUD completo su OBJ_Utente
+--   TPR1(pIdProfilo)     - test CRUD completo su OBJ_Profilo
+--   TPV1(pIdPrivilegio)  - test CRUD singolo su OBJ_Privilegio
+--   TPV2(pIdAzione, pIdRuolo) - verifica soft delete e cancellazione fisica OBJ_Privilegio
+--   TPV3(pIdAzione, pIdRuolo) - verifica Carica per coppia e Cerca
+--   TAB1(pIdSessione, pIdAbilitazione) - test CRUD su OBJ_Abilitazione
+--   TRU1(pIdRuolo)       - test lettura OBJ_Ruolo
+--   TSE1(username, password, idProfilo) - test creazione e caricamento sessione
+--   TBW1..TBW8           - test metodo BuildWhere con vari scenari
+--   TBWP1(pIterazioni)   - benchmark di performance BuildWhere (default 100 iter./scenario)
+--   TCER1                - ricerca utenti con cognome SA% (test OBJ_Utente.Cerca)
 --
 -- ESECUZIONE SELETTIVA
 --   Decommenta le righe nella sezione BEGIN per eseguire test specifici.
@@ -595,6 +597,173 @@ DECLARE
 	  END TBW8;
 
 
+  -- TEST: BUILDWHERE PERFORMANCE -------------------------------------------
+  -- Benchmark di performance per il metodo BuildWhere di OBJ_Profilatore.
+  -- Misura il tempo di esecuzione in tre scenari progressivamente più complessi:
+  --
+  --   Scenario A: 1 filtro FLT semplice (LIKE VARCHAR2)
+  --               Baseline: misura il costo minimo di una chiamata BuildWhere.
+  --   Scenario B: 5 filtri FLT eterogenei (LIKE, =, BETWEEN, NOTNULL, =)
+  --               Carico tipico: verifica la scalabilità con più attributi.
+  --   Scenario C: 5 filtri ABL + 5 filtri FLT con overlap su tutti i campi
+  --               Stress merging: esercita UnisciValori, HaNuoviValori,
+  --               deduplicazione e generazione avvisi per ogni attributo.
+  --
+  -- Parametro:
+  --   pIterazioni (IN, default 100) - numero di esecuzioni BuildWhere per scenario.
+  --     Aumentare per ridurre la varianza (es. 500 per misurazioni più stabili).
+  --
+  -- Output (tramite DBMS_OUTPUT):
+  --   Per ogni scenario: tempo totale in cs (centesimi di secondo) e
+  --   tempo medio per chiamata con 3 cifre decimali (cs/chiamata).
+  --   In caso di errore sull'ultima iterazione viene riportato anche lo StatusCode.
+  --
+  -- Unità di misura: centesimi di secondo (DBMS_UTILITY.GET_TIME).
+  --   1 cs = 10 ms. Valori tipici attesi: 0.01-0.10 cs/chiamata in ambiente locale.
+  --
+  -- Note:
+  --   I contesti vengono ripuliti prima e dopo ogni scenario per garantire
+  --   l'isolamento delle misurazioni. Non viene eseguita nessuna scrittura su DB.
+  PROCEDURE TBWP1(pIterazioni NUMBER DEFAULT 100) AS
+    vUtente  OBJ_Utente;
+    vWhere   VARCHAR2(32767);
+    vTStart  NUMBER;
+    vTEnd    NUMBER;
+    vTotale  NUMBER;
+
+    -- MisuraScenario: esegue BuildWhere pIterazioni volte con i contesti già
+    -- impostati dal chiamante e stampa il riepilogo dei tempi su DBMS_OUTPUT.
+    -- Presuppone che CTX_APP_ABL e CTX_APP_FLT siano stati popolati prima della
+    -- chiamata; non li modifica né li ripulisce (responsabilità del chiamante).
+    --
+    -- Parametro:
+    --   pLabel - etichetta dello scenario da includere nel messaggio di output
+    --            (es. 'Scenario A - 1 FLT LIKE').
+    PROCEDURE MisuraScenario(pLabel VARCHAR2) AS
+    BEGIN
+      vTStart := DBMS_UTILITY.GET_TIME;
+      FOR i IN 1..pIterazioni LOOP
+        vUtente := OBJ_Utente();
+        vUtente.BuildWhere(NULL, vWhere);
+      END LOOP;
+      vTEnd   := DBMS_UTILITY.GET_TIME;
+      vTotale := vTEnd - vTStart;
+      DBMS_OUTPUT.PUT_LINE(
+        pLabel || ' - ' || pIterazioni || ' iterazioni: ' ||
+        vTotale || ' cs totali, ' ||
+        ROUND(vTotale / pIterazioni, 3) || ' cs/chiamata'
+      );
+      IF vUtente.Esito.StatusCode <> 200 THEN
+        DBMS_OUTPUT.PUT_LINE('  ATTENZIONE: ultimo esito ' ||
+          vUtente.Esito.StatusCode || ' - ' || vUtente.Esito.Messaggio);
+      END IF;
+    END MisuraScenario;
+
+  BEGIN
+    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TBWP1 - BUILDWHERE PERFORMANCE (' || pIterazioni || ' iterazioni per scenario)');
+
+    -- Scenario A: 1 filtro FLT semplice
+    PKG_APP.PulisciContesto('CTX_APP_ABL');
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'B%|LIKE');
+    MisuraScenario('Scenario A - 1 FLT LIKE');
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+
+    -- Scenario B: 5 filtri FLT eterogenei
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME',    'B%|LIKE');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO',     'S|=');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ID_UTENTE',  '100;500|BETWEEN');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'EMAIL',      '|NOTNULL');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'NOME',       'Mario|=');
+    MisuraScenario('Scenario B - 5 FLT eterogenei');
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+
+    -- Scenario C: 5 ABL + 5 FLT con overlap su ATTIVO (stress merging)
+    PKG_APP.PulisciContesto('CTX_APP_ABL');
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'ATTIVO',     'S|=');
+    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'NOME',       'Mario|=');
+    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'ID_UTENTE',  '100;200;300|=');
+    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'EMAIL',      '|NOTNULL');
+    PKG_APP.AggiungiContesto('CTX_APP_ABL', 'COGNOME',    'R%|LIKE');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ATTIVO',     'N|=');   -- allarga ABL
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'NOME',       'Mario|='); -- duplicato
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'ID_UTENTE',  '400;500|='); -- nuovi valori
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'EMAIL',      '|NOTNULL'); -- duplicato
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME',    'B%|LIKE'); -- op. diverso
+    MisuraScenario('Scenario C - 5 ABL + 5 FLT con overlap/merging');
+    PKG_APP.PulisciContesto('CTX_APP_ABL');
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+
+  END TBWP1;
+
+
+  -- TEST: CERCA UTENTI -------------------------------------------
+  -- Imposta COGNOME SA%|LIKE su CTX_APP_FLT, invoca OBJ_Utente.Cerca e
+  -- visualizza i risultati riga per riga. I filtri di autorizzazione ABL
+  -- (caricati da PKG_APP.Inizializza) vengono combinati automaticamente.
+  PROCEDURE TCER1 AS
+    vUtente   OBJ_Utente;
+    vCursor   SYS_REFCURSOR;
+    vIdUtente NUMBER;
+    vLogin    VARCHAR2(100);
+    vCognome  VARCHAR2(50);
+    vNome     VARCHAR2(50);
+    vEmail    VARCHAR2(100);
+    vAttivo   VARCHAR2(1);
+    vContatore NUMBER := 0;
+  BEGIN
+    DBMS_OUTPUT.PUT_LINE('ESECUZIONE TCER1 - CERCA UTENTI COGNOME SA%');
+
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+    PKG_APP.AggiungiContesto('CTX_APP_FLT', 'COGNOME', 'SA%|LIKE');
+
+    vUtente := OBJ_Utente();
+    vUtente.Cerca(vCursor);
+
+    IF vUtente.Esito.StatusCode = 200 THEN
+      DBMS_OUTPUT.PUT_LINE(
+        RPAD('ID',     8) || ' ' ||
+        RPAD('LOGIN',  25) || ' ' ||
+        RPAD('COGNOME', 20) || ' ' ||
+        RPAD('NOME',   15) || ' ' ||
+        RPAD('EMAIL',  30) || ' ' ||
+        'ATT'
+      );
+      DBMS_OUTPUT.PUT_LINE(RPAD('-', 103, '-'));
+
+      LOOP
+        FETCH vCursor INTO vIdUtente, vLogin, vCognome, vNome, vEmail, vAttivo;
+        EXIT WHEN vCursor%NOTFOUND;
+        vContatore := vContatore + 1;
+        DBMS_OUTPUT.PUT_LINE(
+          RPAD(TO_CHAR(vIdUtente), 8) || ' ' ||
+          RPAD(NVL(vLogin,   ''), 25) || ' ' ||
+          RPAD(NVL(vCognome, ''), 20) || ' ' ||
+          RPAD(NVL(vNome,    ''), 15) || ' ' ||
+          RPAD(NVL(vEmail,   ''), 50) || ' ' ||
+          NVL(vAttivo, '')
+        );
+      END LOOP;
+
+      CLOSE vCursor;
+      DBMS_OUTPUT.PUT_LINE(RPAD('-', 103, '-'));
+      DBMS_OUTPUT.PUT_LINE('Totale: ' || vContatore || ' record trovati.');
+
+      IF vUtente.Esito.DebugInfo IS NOT NULL THEN
+        DBMS_OUTPUT.PUT_LINE('Avvisi BuildWhere: ' || vUtente.Esito.DebugInfo);
+      END IF;
+
+    ELSE
+      DBMS_OUTPUT.PUT_LINE('TCER1 KO - ' || vUtente.Esito.StatusCode ||
+        ': ' || vUtente.Esito.Messaggio || ' - ' || vUtente.Esito.DebugInfo);
+    END IF;
+
+    PKG_APP.PulisciContesto('CTX_APP_FLT');
+  END TCER1;
+
+
   -- TEST: SESSIONE -------------------------------------------
   PROCEDURE TSE1(pUsername VARCHAR2, pKeyword VARCHAR2, pIdProfilo NUMBER) AS
     BEGIN
@@ -682,6 +851,13 @@ BEGIN
     --TBW6();
     --TBW7();
     --TBW8();
+
+    -- ESECUZIONE TEST CERCA UTENTI (cognome SA%)
+    TCER1();
+
+    -- ESECUZIONE TEST PERFORMANCE BUILDWHERE (default 100 iterazioni per scenario)
+    --TBWP1();
+    --TBWP1(500); -- carico pesante
 
     COMMIT;
 
